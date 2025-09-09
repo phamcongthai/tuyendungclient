@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Button } from 'antd';
-import { MailOutlined, WarningOutlined, BellFilled } from '@ant-design/icons';
+import { MailOutlined, BellFilled } from '@ant-design/icons';
 import Swal from 'sweetalert2';
 import { authAPI } from '../apis/auth.api';
 import { useUser } from '../contexts/UserContext';
@@ -21,8 +21,8 @@ const EmailVerificationBanner: React.FC<EmailVerificationBannerProps> = ({
     setSending(true);
     try {
       const response = await authAPI.resendVerification(userEmail);
-      
-      if (response.success) {
+      const ok = response?.success !== false; // treat absence of success as ok
+      if (ok) {
         await Swal.fire({
           icon: 'success',
           title: 'Email xác thực đã được gửi!',

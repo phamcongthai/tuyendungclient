@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Dropdown, Avatar, Button, Space, Divider, Typography } from 'antd';
+import { Dropdown, Avatar, Button, Divider } from 'antd';
 import { 
   UserOutlined, 
   LogoutOutlined, 
   MailOutlined, 
-  CheckCircleOutlined,
   DownOutlined,
   SettingOutlined
 } from '@ant-design/icons';
@@ -13,7 +12,7 @@ import { useUser } from '../contexts/UserContext';
 import Swal from 'sweetalert2';
 import { authAPI } from '../apis/auth.api';
 
-const { Text } = Typography;
+// const { Text } = Typography;
 
 const UserProfileDropdown: React.FC = () => {
   const { user, logout } = useUser();
@@ -165,10 +164,13 @@ const UserProfileDropdown: React.FC = () => {
       {/* Menu Items */}
       <div style={{ padding: '4px 0' }}>
         {menuItems.map((item, index) => {
-          if (item.type === 'divider') {
+          if (item && item.type === 'divider') {
             return <Divider key={index} style={{ margin: '4px 0' }} />;
           }
-          
+          if (!item) {
+            return null;
+          }
+
           return (
             <div
               key={item.key}
@@ -182,15 +184,12 @@ const UserProfileDropdown: React.FC = () => {
                 fontSize: '14px',
                 color: item.danger ? '#ff4d4f' : '#262626',
                 transition: 'background-color 0.2s',
-                ':hover': {
-                  backgroundColor: item.danger ? '#fff2f0' : '#f5f5f5'
-                }
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = item.danger ? '#fff2f0' : '#f5f5f5';
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLDivElement).style.backgroundColor = item.danger ? '#fff2f0' : '#f5f5f5';
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLDivElement).style.backgroundColor = 'transparent';
               }}
             >
               {item.icon}
@@ -204,7 +203,7 @@ const UserProfileDropdown: React.FC = () => {
 
   return (
     <Dropdown 
-      overlay={dropdownOverlay} 
+      dropdownRender={() => dropdownOverlay}
       trigger={['click']}
       placement="bottomRight"
       arrow
