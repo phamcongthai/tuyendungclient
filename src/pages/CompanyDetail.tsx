@@ -4,7 +4,7 @@ import { Layout, Skeleton, Avatar, Tag, Space, Typography } from 'antd'
 import { MailOutlined, PhoneOutlined, EnvironmentOutlined, GlobalOutlined, TeamOutlined, AuditOutlined, CalendarOutlined } from '@ant-design/icons'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
-import axios from 'axios'
+import { http } from '../apis/http'
 
 type Company = {
   _id: string
@@ -33,8 +33,7 @@ const CompanyDetail: React.FC = () => {
     const run = async () => {
       try {
         if (!slug) return
-        const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
-        const res = await axios.get<Company>(`${baseURL}/companies/slug/${slug}`)
+        const res = await http.get<Company>(`/companies/slug/${slug}`)
         if (mounted) setCompany(res.data)
       } finally {
         if (mounted) setLoading(false)

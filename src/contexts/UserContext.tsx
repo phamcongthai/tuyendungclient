@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import axios from 'axios';
-
-const API_BASE_URL = 'http://localhost:3000';
+import { http } from '../apis/http';
 
 interface User {
   id: string;
@@ -49,9 +47,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const fetchUser = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
-        withCredentials: true
-      });
+      const response = await http.get(`/auth/me`);
       console.log('UserContext - Fetched user data:', response.data);
       setUser(response.data);
     } catch (error) {
@@ -72,9 +68,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
-        withCredentials: true
-      });
+      await http.post(`/auth/logout`, {});
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
