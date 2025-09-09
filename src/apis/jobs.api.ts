@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { http as axiosInstance } from './http';
 import type { JobData } from '../types/models';
 
