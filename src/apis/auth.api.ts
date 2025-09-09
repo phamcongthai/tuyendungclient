@@ -1,7 +1,4 @@
-import axios from 'axios';
 import { http } from './http';
-
-const API_BASE_URL = 'http://localhost:3000'; 
 
 export interface RegisterData {
   fullName: string;
@@ -39,13 +36,13 @@ export const authAPI = {
     try {
       console.log(data);
       
-      const response = await axios.post(`${API_BASE_URL}/auth/register/user`, data);
+      const response = await http.post(`/auth/register/user`, data);
       // after account created, init blank user profile
       const account = response.data?.user || response.data?.account;
       const accountId = account?._id || account?.id;
       if (accountId) {
         try {
-          await axios.post(`${API_BASE_URL}/users/init`, { accountId, fullName: data.fullName });
+          await http.post(`/users/init`, { accountId, fullName: data.fullName });
         } catch (e) {
           console.warn('Init blank user failed (non-blocking):', e);
         }
@@ -77,12 +74,12 @@ export const authAPI = {
   // Đăng ký nhà tuyển dụng (có thể cần thêm thông tin)
   registerRecruiter: async (data: RegisterData & { companyName?: string }): Promise<AuthResponse> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/register-recruiter`, data);
+      const response = await http.post(`/auth/register-recruiter`, data);
       const account = response.data?.user || response.data?.account;
       const accountId = account?._id || account?.id;
       if (accountId) {
         try {
-          await axios.post(`${API_BASE_URL}/users/init`, { accountId, fullName: data.fullName });
+          await http.post(`/users/init`, { accountId, fullName: data.fullName });
         } catch (e) {
           console.warn('Init blank user failed (non-blocking):', e);
         }
@@ -99,7 +96,7 @@ export const authAPI = {
   // Gửi lại email xác thực
   resendVerification: async (email: string): Promise<AuthResponse> => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/auth/resend-verification`, { email });
+      const response = await http.post(`/auth/resend-verification`, { email });
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
