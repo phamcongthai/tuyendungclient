@@ -249,17 +249,17 @@ const Profile: React.FC = () => {
       height: '700px',
       fromElement: false,
       storageManager: false,
-      blockManager: { appendTo: null },
-      layerManager: { appendTo: null },
-      selectorManager: { appendTo: null },
-      styleManager: { appendTo: null },
+      blockManager: { appendTo: undefined },
+      layerManager: { appendTo: undefined },
+      selectorManager: { appendTo: undefined },
+      styleManager: { appendTo: undefined },
       panels: { defaults: [] },
     })
     // Disable editing interactions
     try {
-      ed.off('component:selected')
-      ed.Panels.getPanels().reset([])
-      ed.BlockManager.getAll().reset([])
+      ed.off('component:selected', () => {});
+      ed.Panels.getPanels().reset([]);
+      ed.BlockManager.getAll().reset([]);
     } catch {}
     // Basic styles consistent with builder
     ed.setStyle(`

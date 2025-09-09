@@ -29,7 +29,7 @@ const setupInterceptors = (instance: AxiosInstance) => {
     }
   );
 };
-
+//hdhhd
 export const http = (() => {
   if (!httpInstance) {
     httpInstance = axios.create({
