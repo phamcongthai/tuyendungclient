@@ -16,33 +16,34 @@ const ApplyModal: React.FC<ApplyModalProps> = ({ open, onClose, jobId }) => {
   const { user } = useUser();
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const [resumeUrl, setResumeUrl] = useState<string | undefined>(undefined);
-  const [cvDataJson, setCvDataJson] = useState<any | null>(null);
+  const [hasCv, setHasCv] = useState<boolean>(false);
+  const [cvId, setCvId] = useState<string | null>(null);
+  const [cvFields, setCvFields] = useState<Record<string, string> | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Prefill default CV from user's saved profile (cvUrl)
+  // Prefill CV data from user's saved profile
   useEffect(() => {
     let mounted = true;
     const prefill = async () => {
       if (!open) return;
       try {
         const me = await usersAPI.getMe();
-        // Prefer stored cvUrl if available
-        const defaultUrl: string | undefined = me?.cvUrl || undefined;
-        if (mounted && defaultUrl) {
-          setResumeUrl(defaultUrl);
-        }
-        // If there is cvData but no cvUrl, keep it for auto-generation
-        if (!defaultUrl && me?.cvData && mounted) {
-          try {
-            const parsed = typeof me.cvData === 'string' ? JSON.parse(me.cvData) : me.cvData;
-            setCvDataJson(parsed || null);
-          } catch {
-            setCvDataJson(null);
+        
+        // Check if user has CV (cvId and cvFields)
+        if (me?.cvId && me?.cvFields) {
+          if (mounted) {
+            setHasCv(true);
+            setCvId(me.cvId);
+            setCvFields(me.cvFields);
           }
-        } else if (mounted) {
-          setCvDataJson(null);
+        } else {
+          if (mounted) {
+            setHasCv(false);
+            setCvId(null);
+            setCvFields(null);
+          }
         }
+        
         // Also prefill basic contact info if empty
         try {
           const current = form.getFieldsValue();
@@ -67,64 +68,7 @@ const ApplyModal: React.FC<ApplyModalProps> = ({ open, onClose, jobId }) => {
       message.error('Không xác định được công việc. Vui lòng tải lại trang.');
       return;
     }
-    // If no direct resumeUrl but we have cvData, auto-generate PDF and upload
-    let finalResumeUrl = resumeUrl;
-    if (!finalResumeUrl && cvDataJson) {
-      try {
-        setSubmitting(true);
-        // Ensure libs
-        const loadScript = (src: string) => new Promise<void>((resolve, reject) => {
-          const s = document.createElement('script');
-          s.src = src; s.async = true; s.onload = () => resolve(); s.onerror = () => reject(new Error('Failed to load ' + src));
-          document.body.appendChild(s);
-        });
-        if (!(window as any).html2canvas) {
-          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-        }
-        if (!(window as any).jspdf) {
-          await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-        }
-        const html = cvDataJson.html || '<div />';
-        const css = cvDataJson.css || '';
-        const wrapper = document.createElement('div');
-        wrapper.style.position = 'fixed';
-        wrapper.style.left = '-99999px';
-        wrapper.style.top = '0';
-        wrapper.style.width = '794px';
-        wrapper.innerHTML = `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
-        document.body.appendChild(wrapper);
-        const canvas = await (window as any).html2canvas(wrapper, { scale: 1, useCORS: true });
-        document.body.removeChild(wrapper);
-        const imgData = canvas.toDataURL('image/jpeg', 0.8);
-        const { jsPDF } = (window as any).jspdf;
-        const pdf = new jsPDF('p', 'pt', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = pageWidth;
-        const imgHeight = canvas.height * (imgWidth / canvas.width);
-        let position = 0;
-        let heightLeft = imgHeight;
-        while (heightLeft > 0) {
-          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pageHeight;
-          if (heightLeft > 0) { pdf.addPage(); position = 0; }
-        }
-        const blob = pdf.output('blob') as Blob;
-        const file = new File([blob], 'cv.pdf', { type: 'application/pdf' });
-        const { url, downloadUrl } = await applicationsAPI.uploadResume(file);
-        finalResumeUrl = downloadUrl || url;
-        setResumeUrl(finalResumeUrl);
-      } catch (err: any) {
-        message.warning('Tạo CV từ hồ sơ thất bại. Vui lòng tạo CV PDF trong trang Hồ sơ.');
-        onClose();
-        navigate('/profile');
-        setSubmitting(false);
-        return;
-      } finally {
-        setSubmitting(false);
-      }
-    }
-    if (!finalResumeUrl) {
+    if (!hasCv || !cvId || !cvFields) {
       message.warning('Bạn chưa có CV trong hồ sơ. Vui lòng tạo CV trước.');
       onClose();
       navigate('/profile');
@@ -135,13 +79,11 @@ const ApplyModal: React.FC<ApplyModalProps> = ({ open, onClose, jobId }) => {
       const values = await form.validateFields();
       await applicationsAPI.apply({
         jobId,
-        note: values.intro,
-        resumeUrl: finalResumeUrl,
+        coverLetter: values.intro,
       });
       message.success('Ứng tuyển thành công');
       onClose();
       form.resetFields();
-      setResumeUrl(undefined);
     } catch (e: any) {
       if (e?.errorFields) return; // validation error
       const serverMsg = e?.response?.data?.message || e?.message;
@@ -167,21 +109,10 @@ const ApplyModal: React.FC<ApplyModalProps> = ({ open, onClose, jobId }) => {
       <div style={{ display: 'grid', gap: 16 }}>
         <div>
           <div style={{ fontWeight: 700, marginBottom: 8 }}>CV sẽ sử dụng</div>
-          {resumeUrl || cvDataJson ? (
+          {hasCv ? (
             <Alert
               type="success"
-              message={
-                <div>
-                  {resumeUrl ? (
-                    <>
-                      Đang sử dụng CV mặc định từ hồ sơ.{' '}
-                      <a href={resumeUrl} target="_blank" rel="noreferrer">Xem CV</a>
-                    </>
-                  ) : (
-                    'Sẽ tự động sử dụng CV từ hồ sơ (cvData) khi gửi ứng tuyển.'
-                  )}
-                </div>
-              }
+              message="Đang sử dụng CV từ hồ sơ của bạn. CV sẽ được hiển thị cho nhà tuyển dụng."
               showIcon
             />
           ) : (

@@ -16,6 +16,10 @@ export const usersAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
+  },
+  async deleteCv() {
+    const res = await axiosInstance.delete('/users/me/cv');
+    return res.data;
   }
 }
 

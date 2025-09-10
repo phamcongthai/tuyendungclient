@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Layout, Card, Form, Input, DatePicker, Select, Upload, Button, Space, Typography, Divider, Tag, message, Modal } from 'antd'
+import { EditOutlined } from '@ant-design/icons'
 import { usersAPI } from '../apis/users.api'
+import { fetchCVSampleById, type CVSampleData } from '../apis/cv-samples.api'
 import dayjs from 'dayjs'
 import GrapeJS from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import CVTemplateModal from '../components/CVTemplateModal'
 // import { applicationsAPI } from '../apis/applications.api'
 
 const { Title, Text } = Typography
@@ -19,6 +22,8 @@ const Profile: React.FC = () => {
   const [cvModalOpen, setCvModalOpen] = useState(false)
   const [cvViewOpen, setCvViewOpen] = useState(false)
   const [cvUploading, setCvUploading] = useState(false)
+  const [templateModalOpen, setTemplateModalOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<CVSampleData | null>(null)
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   const load = async () => {
@@ -69,33 +74,35 @@ const Profile: React.FC = () => {
       },
     })
 
-    // Base styles for CV layout
-    ed.setStyle(`
-      /* Blue-themed resume template with left sidebar */
-      .cv-container { font-family: Inter, system-ui, Arial, sans-serif; color: #111827; background: #ffffff; }
-      .cv-wrapper { display: grid; grid-template-columns: 280px 1fr; min-height: 1000px; }
-      .cv-sidebar { background: #1f4e79; color: #ffffff; padding: 24px; }
-      .cv-sidebar .cv-avatar { width: 120px; height: 120px; border-radius: 50%; background: #e5e7eb; border: 4px solid #ffffff; margin: 0 auto 12px; }
-      .cv-name { font-size: 20px; font-weight: 700; color: #ffffff; text-transform: uppercase; }
-      .cv-subtitle { color: #dbeafe; font-size: 12px; }
-      .cv-info { list-style: none; padding: 0; margin: 12px 0; }
-      .cv-info li { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 12px; color: #e5e7eb; }
-      .cv-sidebar-section { margin: 16px 0; }
-      .cv-sidebar-title { font-weight: 700; text-transform: uppercase; color: #ffffff; margin-bottom: 8px; }
-      .cv-skill { margin: 8px 0; }
-      .cv-skill-name { font-size: 12px; color: #ffffff; margin-bottom: 4px; }
-      .cv-skill-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.35); border-radius: 999px; overflow: hidden; }
-      .cv-skill-fill { height: 100%; background: #4ade80; }
-      .cv-main { padding: 24px; background: #ffffff; }
-      .cv-section { margin-bottom: 18px; }
-      .cv-section-head { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 10px; }
-      .cv-section-icon { width: 28px; height: 28px; border-radius: 999px; background: #1f4e79; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
-      .cv-section-title { font-size: 16px; font-weight: 700; color: #1f4e79; }
-      .cv-item { margin: 8px 0; }
-      .cv-item-header { display: flex; justify-content: space-between; font-weight: 600; }
-      .cv-muted { color: #6B7280; font-size: 12px; }
-      .cv-list { padding-left: 16px; margin: 6px 0; }
-    `)
+    // Base styles for CV layout (only if no template selected)
+    if (!selectedTemplate) {
+      ed.setStyle(`
+        /* Blue-themed resume template with left sidebar */
+        .cv-container { font-family: Inter, system-ui, Arial, sans-serif; color: #111827; background: #ffffff; }
+        .cv-wrapper { display: grid; grid-template-columns: 280px 1fr; min-height: 1000px; }
+        .cv-sidebar { background: #1f4e79; color: #ffffff; padding: 24px; }
+        .cv-sidebar .cv-avatar { width: 120px; height: 120px; border-radius: 50%; background: #e5e7eb; border: 4px solid #ffffff; margin: 0 auto 12px; }
+        .cv-name { font-size: 20px; font-weight: 700; color: #ffffff; text-transform: uppercase; }
+        .cv-subtitle { color: #dbeafe; font-size: 12px; }
+        .cv-info { list-style: none; padding: 0; margin: 12px 0; }
+        .cv-info li { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 12px; color: #e5e7eb; }
+        .cv-sidebar-section { margin: 16px 0; }
+        .cv-sidebar-title { font-weight: 700; text-transform: uppercase; color: #ffffff; margin-bottom: 8px; }
+        .cv-skill { margin: 8px 0; }
+        .cv-skill-name { font-size: 12px; color: #ffffff; margin-bottom: 4px; }
+        .cv-skill-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.35); border-radius: 999px; overflow: hidden; }
+        .cv-skill-fill { height: 100%; background: #4ade80; }
+        .cv-main { padding: 24px; background: #ffffff; }
+        .cv-section { margin-bottom: 18px; }
+        .cv-section-head { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 10px; }
+        .cv-section-icon { width: 28px; height: 28px; border-radius: 999px; background: #1f4e79; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
+        .cv-section-title { font-size: 16px; font-weight: 700; color: #1f4e79; }
+        .cv-item { margin: 8px 0; }
+        .cv-item-header { display: flex; justify-content: space-between; font-weight: 600; }
+        .cv-muted { color: #6B7280; font-size: 12px; }
+        .cv-list { padding-left: 16px; margin: 6px 0; }
+      `)
+    }
 
     const bm = ed.BlockManager
     const cat = 'CV Components'
@@ -232,12 +239,50 @@ const Profile: React.FC = () => {
 
     setEditor(ed)
     initRef.current = true
+
     return () => {
       try { ed.destroy() } catch {}
       initRef.current = false
       setEditor(null)
     }
-  }, [cvModalOpen])
+  }, [cvModalOpen, selectedTemplate])
+
+  // Load template when selectedTemplate changes and editor is ready
+  useEffect(() => {
+    if (!editor || !selectedTemplate || !cvModalOpen) return
+    
+    // Load template with a small delay to ensure editor is ready
+    const loadTemplate = async () => {
+      try {
+        console.log('Loading selected template:', selectedTemplate.name)
+        
+        // Clear existing content first
+        editor.setComponents('')
+        editor.setStyle('')
+        
+        // Load template content
+        editor.setComponents(selectedTemplate.html)
+        editor.setStyle(selectedTemplate.css)
+        
+        // Auto-fill avatar from user profile
+        const doc = getEditorDocument()
+        if (doc) {
+          const avatarEl = doc.querySelector('[data-field="avatar"]') as HTMLImageElement
+          if (avatarEl && profile?.avatar) {
+            avatarEl.src = profile.avatar
+          }
+        }
+      } catch (error) {
+        console.error('Error loading template in editor:', error)
+        message.error('Không thể tải mẫu CV vào editor')
+      }
+    }
+    
+    // Use setTimeout to ensure editor is fully ready
+    const timeoutId = setTimeout(loadTemplate, 200)
+    
+    return () => clearTimeout(timeoutId)
+  }, [editor, selectedTemplate, cvModalOpen, profile])
 
   // Read-only CV viewer modal setup
   const viewerRef = useRef<any>(null)
@@ -282,28 +327,130 @@ const Profile: React.FC = () => {
     }
   }, [cvViewOpen])
 
-  // Apply cvData to viewer when opened
+  // Apply CV data to viewer when opened
   useEffect(() => {
     if (!cvViewOpen || !viewerRef.current) return
-    const raw = (profile as any)?.cvData
-    if (!raw) return
-    try {
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-      if (parsed?.html) viewerRef.current.setComponents(parsed.html)
-      if (parsed?.css) viewerRef.current.setStyle(parsed.css)
-    } catch {}
+    
+    // Add a small delay to ensure viewer is fully ready
+    const loadViewerData = async () => {
+      try {
+        // If using new CV structure (cvId + cvFields)
+        if ((profile as any)?.cvId && (profile as any)?.cvFields) {
+          console.log('Loading CV for viewer:', (profile as any).cvId, (profile as any).cvFields)
+          await loadTemplateForViewer((profile as any).cvId, (profile as any).cvFields)
+        }
+        // Fallback to old cvData structure
+        else {
+          const raw = (profile as any)?.cvData
+          if (!raw) return
+          try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+            if (parsed?.html) viewerRef.current.setComponents(parsed.html)
+            if (parsed?.css) viewerRef.current.setStyle(parsed.css)
+          } catch {}
+        }
+      } catch (error) {
+        console.error('Error loading CV for viewer:', error)
+      }
+    }
+    
+    const timeoutId = setTimeout(loadViewerData, 300)
+    return () => clearTimeout(timeoutId)
   }, [cvViewOpen, profile])
 
-  // Prefill editor from saved JSON when modal and editor are ready
+  const loadTemplateForViewer = async (cvId: string, cvFields: Record<string, string>) => {
+    try {
+      const template = await fetchCVSampleById(cvId)
+      
+      // Simply set avatar src in the template
+      let modifiedHtml = template.html
+      if (profile?.avatar) {
+        // Replace src="" with actual avatar URL
+        modifiedHtml = modifiedHtml.replace(
+          'src="" alt="Profile Photo" data-field="avatar"',
+          `src="${profile.avatar}" alt="Profile Photo" data-field="avatar"`
+        )
+      }
+      
+      viewerRef.current.setComponents(modifiedHtml)
+      viewerRef.current.setStyle(template.css)
+      
+      // Wait a bit for the DOM to be ready, then apply other fields
+      setTimeout(() => {
+        const doc = viewerRef.current.Canvas?.getDocument?.()
+        if (doc) {
+          // Apply user data to template (excluding avatar since it's already set)
+          if (cvFields) {
+            Object.keys(cvFields).forEach((k) => {
+              if (k !== 'avatar') { // Skip avatar since it's handled above
+                const el = doc.querySelector(`[data-field="${k}"]`)
+                if (el) {
+                  el.textContent = String(cvFields[k] ?? '')
+                }
+              }
+            })
+          }
+        }
+      }, 200)
+      
+    } catch (error) {
+      console.error('Error loading template for viewer:', error)
+    }
+  }
+
+  // Prefill editor from saved CV data when modal and editor are ready
   useEffect(() => {
     if (!cvModalOpen || !editor) return
-    const raw = (profile as any)?.cvData
-    if (!raw) return
-    try {
-      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-      applyCvJsonToEditor(parsed)
-    } catch {}
+    
+    // If using new CV structure (cvId + cvFields)
+    if ((profile as any)?.cvId && (profile as any)?.cvFields) {
+      // Load template and apply user data
+      loadTemplateAndApplyData((profile as any).cvId, (profile as any).cvFields)
+    } 
+    // Fallback to old cvData structure
+    else {
+      const raw = (profile as any)?.cvData
+      if (!raw) return
+      try {
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+        if (parsed.fields) {
+          applyCvJsonToEditor(parsed.fields)
+        }
+      } catch {}
+    }
   }, [cvModalOpen, editor, profile])
+
+  const loadTemplateAndApplyData = async (cvId: string, cvFields: Record<string, string>) => {
+    try {
+      const template = await fetchCVSampleById(cvId)
+      console.log('Loading template for editor:', template.name)
+      
+      // Clear existing content first
+      editor.setComponents('')
+      editor.setStyle('')
+      
+      // Load template content
+      editor.setComponents(template.html)
+      editor.setStyle(template.css)
+      
+      // Apply user data to template
+      if (cvFields) {
+        applyCvJsonToEditor(cvFields)
+      }
+      
+      // Auto-fill avatar from user profile (always override with current avatar)
+      const doc = getEditorDocument()
+      if (doc) {
+        const avatarEl = doc.querySelector('[data-field="avatar"]') as HTMLImageElement
+        if (avatarEl && profile?.avatar) {
+          avatarEl.src = profile.avatar
+        }
+      }
+    } catch (error) {
+      console.error('Error loading template:', error)
+      message.error('Không thể tải mẫu CV')
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -349,6 +496,70 @@ const Profile: React.FC = () => {
     }
   }
 
+  const handleSelectTemplate = async (template: CVSampleData) => {
+    try {
+      setSelectedTemplate(template)
+      setCvModalOpen(true)
+      message.success(`Đã chọn mẫu CV: ${template.name}`)
+      console.log('Selected template:', template)
+    } catch (error) {
+      message.error('Không thể tải mẫu CV')
+      console.error('Error selecting template:', error)
+    }
+  }
+
+  const handleEditExistingCV = async () => {
+    try {
+      if (!(profile as any)?.cvId) {
+        message.error('Không tìm thấy CV để chỉnh sửa')
+        return
+      }
+      
+      // Load template from cvId
+      const template = await fetchCVSampleById((profile as any).cvId)
+      setSelectedTemplate(template)
+      setCvModalOpen(true)
+      
+      // Load template and apply existing data from database
+      setTimeout(() => {
+        loadTemplateAndApplyData(template, (profile as any).cvFields || {})
+      }, 500)
+      
+      message.success(`Đã mở CV để chỉnh sửa: ${template.name}`)
+    } catch (error) {
+      message.error('Không thể tải CV để chỉnh sửa')
+    }
+  }
+
+  const handleDeleteCV = async () => {
+    try {
+      Modal.confirm({
+        title: 'Xóa CV',
+        content: 'Bạn có chắc chắn muốn xóa CV hiện tại? Hành động này không thể hoàn tác.',
+        okText: 'Xóa',
+        okType: 'danger',
+        cancelText: 'Hủy',
+        onOk: async () => {
+          try {
+            await usersAPI.deleteCv()
+            
+            setProfile((prev: any) => ({
+              ...(prev || {}),
+              cvId: null,
+              cvFields: null
+            }))
+            
+            message.success('Đã xóa CV thành công')
+          } catch (error) {
+            message.error('Không thể xóa CV')
+          }
+        }
+      })
+    } catch (error) {
+      // Handle error silently
+    }
+  }
+
   // Upload CV from file is no longer supported; users should use the builder
 
   const loadScript = (src: string) => new Promise<void>((resolve, reject) => {
@@ -377,41 +588,98 @@ const Profile: React.FC = () => {
       const nodes = doc.querySelectorAll('[data-field]')
       nodes.forEach((el) => {
         const key = el.getAttribute('data-field') || ''
-        if (key) fields[key] = (el.textContent || '').trim()
+        if (key) {
+          // Không lưu avatar vào cvFields vì avatar luôn lấy từ user profile
+          if (el.tagName === 'IMG' && key === 'avatar') {
+            // Skip avatar field - it will always come from user profile
+            return
+          } else {
+            fields[key] = (el.textContent || '').trim()
+          }
+        }
       })
     }
-    return { html: editor.getHtml(), css: editor.getCss(), fields }
+    // Chỉ trả về fields, không lưu HTML/CSS và không lưu avatar
+    return fields
   }
 
-  const applyCvJsonToEditor = (json: any) => {
-    if (!editor || !json) return
-    if (json.html) {
-      editor.setComponents(json.html)
-    }
-    if (json.css) {
-      editor.setStyle(json.css)
-    }
+  const applyCvJsonToEditor = (fields: Record<string, string>) => {
+    if (!editor || !fields) return
     const doc = getEditorDocument()
-    if (doc && json.fields) {
-      Object.keys(json.fields).forEach((k) => {
+    if (doc) {
+      Object.keys(fields).forEach((k) => {
         const el = doc.querySelector(`[data-field="${k}"]`)
-        if (el) el.textContent = String(json.fields[k] ?? '')
+        if (el) {
+          el.textContent = String(fields[k] ?? '')
+        }
       })
+      
+      // Luôn tự động điền avatar từ user profile
+      const avatarEl = doc.querySelector('[data-field="avatar"]') as HTMLImageElement
+      if (avatarEl && profile?.avatar) {
+        avatarEl.src = profile.avatar
+      }
     }
   }
 
-  const exportEditorToPdfAndUpload = async () => {
+  const saveCvData = async () => {
+    if (!editor) { 
+      message.error('Trình tạo chưa sẵn sàng'); 
+      return false 
+    }
+    
+    if (!selectedTemplate) {
+      message.error('Vui lòng chọn template CV trước khi lưu');
+      return false
+    }
+    
+    try {
+      const cvFields = buildCvJsonFromEditor()
+      const response = await usersAPI.updateMe({ 
+        cvId: selectedTemplate._id,
+        cvFields: cvFields 
+      })
+      
+      setProfile((prev: any) => ({ 
+        ...(prev || {}), 
+        cvId: selectedTemplate._id,
+        cvFields: cvFields 
+      }))
+      
+      message.success('Đã lưu CV thành công!')
+      return true
+    } catch (err: any) {
+      message.error('Lưu CV thất bại: ' + (err?.response?.data?.message || err?.message || ''))
+      return false
+    }
+  }
+
+  const saveCvAndDownloadPdf = async () => {
     if (!editor) { message.error('Trình tạo chưa sẵn sàng'); return }
     try {
       setCvUploading(true)
-      // Save CV JSON to profile before exporting
-      try {
-        const cvJson = buildCvJsonFromEditor()
-        await usersAPI.updateMe({ cvData: cvJson })
-        setProfile((prev: any) => ({ ...(prev || {}), cvData: cvJson }))
-      } catch (err: any) {
-        message.warning('Lưu CV (JSON) thất bại: ' + (err?.response?.data?.message || err?.message || ''))
+      
+      // Save CV data to profile first
+      const saveSuccess = await saveCvData()
+      if (!saveSuccess) {
+        setCvUploading(false)
+        return
       }
+      
+      // Then download PDF
+      await downloadPdf()
+      
+      message.success('Đã lưu CV (JSON) và tải PDF về máy')
+    } catch (e: any) {
+      message.error(e?.message || 'Lưu CV và tải PDF thất bại')
+    } finally {
+      setCvUploading(false)
+    }
+  }
+
+  const downloadPdf = async () => {
+    if (!editor) { message.error('Trình tạo chưa sẵn sàng'); return }
+    try {
       if (!(window as any).html2canvas) {
         await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
       }
@@ -448,19 +716,16 @@ const Profile: React.FC = () => {
         }
       }
       const blob = pdf.output('blob') as Blob
-      // Instead of uploading, download locally
+      // Download locally
       const objUrl = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = objUrl
       a.download = 'cv.pdf'
       a.click()
       URL.revokeObjectURL(objUrl)
-      setCvModalOpen(false)
-      message.success('Đã lưu CV (JSON) và tải PDF về máy')
+      message.success('Đã tải PDF về máy')
     } catch (e: any) {
-      message.error(e?.message || 'Xuất PDF thất bại')
-    } finally {
-      setCvUploading(false)
+      message.error(e?.message || 'Tải PDF thất bại')
     }
   }
 
@@ -551,9 +816,21 @@ const Profile: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="CV">
                   <div style={{ display: 'grid', gap: 8 }}>
-                    <Button type="primary" onClick={() => setCvModalOpen(true)}>Mở trình tạo CV</Button>
+                    <Button type="primary" onClick={() => setTemplateModalOpen(true)}>Tạo CV mới</Button>
+                    {(profile as any)?.cvId && (
+                      <Button onClick={handleEditExistingCV}>Chỉnh sửa CV</Button>
+                    )}
                     <Button onClick={() => setCvViewOpen(true)}>Xem CV</Button>
+                    {(profile as any)?.cvId && (
+                      <Button danger onClick={handleDeleteCV}>Xóa CV</Button>
+                    )}
                   </div>
+                  {(profile as any)?.cvId && (
+                    <div style={{ marginTop: 8, padding: 8, background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                      </Text>
+                    </div>
+                  )}
                 </Form.Item>
                 <Form.Item>
                   <Space>
@@ -567,9 +844,23 @@ const Profile: React.FC = () => {
 
           {/* CV Builder Modal */}
           <Modal
-            title="Trình tạo CV"
+            title={
+              <Space>
+                <EditOutlined />
+                <span>Trình tạo CV</span>
+                {selectedTemplate && (
+                  <Text type="secondary" style={{ fontSize: '14px' }}>
+                    - {selectedTemplate.name}
+                  </Text>
+                )}
+              </Space>
+            }
             open={cvModalOpen}
-            onCancel={() => setCvModalOpen(false)}
+            onCancel={() => {
+              setCvModalOpen(false)
+              setSelectedTemplate(null)
+              console.log('CV modal closed, template reset')
+            }}
             width={1000}
             footer={[
               <Button key="template" onClick={() => {
@@ -649,8 +940,10 @@ const Profile: React.FC = () => {
                   </div>
                 `)
               }}>Chèn mẫu</Button>,
-              <Button key="cancel" onClick={() => setCvModalOpen(false)}>Hủy</Button>,
-              <Button key="ok" type="primary" loading={cvUploading} onClick={exportEditorToPdfAndUpload}>Tải PDF</Button>
+              <Button key="save" onClick={saveCvData}>Lưu CV</Button>,
+              <Button key="saveAndDownload" type="primary" loading={cvUploading} onClick={saveCvAndDownloadPdf}>Lưu CV & Tải PDF</Button>,
+              <Button key="download" onClick={downloadPdf}>Tải PDF</Button>,
+              <Button key="cancel" onClick={() => setCvModalOpen(false)}>Hủy</Button>
             ]}
           >
             <div id="gjs-modal-blocks" style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: 8, marginBottom: 12, background: '#fafafa' }} />
@@ -667,12 +960,19 @@ const Profile: React.FC = () => {
               <Button key="close" onClick={() => setCvViewOpen(false)}>Đóng</Button>,
             ]}
           >
-            {(profile as any)?.cvData ? (
+            {((profile as any)?.cvData || (profile as any)?.cvId) ? (
               <div id="gjs-view" style={{ border: '1px solid #e5e7eb', borderRadius: 8, height: 700, minHeight: 700 }} />
             ) : (
               <div style={{ padding: 16 }}>Chưa có CV. Hãy tạo CV trước.</div>
             )}
           </Modal>
+
+          {/* CV Template Selection Modal */}
+          <CVTemplateModal
+            open={templateModalOpen}
+            onClose={() => setTemplateModalOpen(false)}
+            onSelectTemplate={handleSelectTemplate}
+          />
         </div>
       </Layout.Content>
       <Footer />

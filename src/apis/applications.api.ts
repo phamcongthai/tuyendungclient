@@ -2,8 +2,7 @@ import { http as axiosInstance } from './http';
 
 export type ApplyPayload = {
   jobId: string;
-  note?: string;
-  resumeUrl?: string;
+  coverLetter?: string;
 };
 
 export const applicationsAPI = {
