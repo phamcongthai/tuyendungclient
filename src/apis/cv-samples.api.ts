@@ -1,9 +1,4 @@
-import axios from 'axios';
-
-const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: false,
-});
+import { http as axiosInstance } from './http';
 
 export interface CVSampleData {
   _id: string;
@@ -20,12 +15,12 @@ export interface CVSampleData {
 
 // Lấy danh sách CV samples đang hoạt động
 export const fetchActiveCVSamples = async (): Promise<CVSampleData[]> => {
-  const res = await axiosInstance.get<CVSampleData[]>('/cv-samples/active');
+  const res = await axiosInstance.get<CVSampleData[]>('/public/cv-samples');
   return res.data;
 };
 
 // Lấy chi tiết CV sample
 export const fetchCVSampleById = async (id: string): Promise<CVSampleData> => {
-  const res = await axiosInstance.get<CVSampleData>(`/cv-samples/${id}`);
+  const res = await axiosInstance.get<CVSampleData>(`/public/cv-samples/${id}`);
   return res.data;
 };

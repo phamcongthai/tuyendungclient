@@ -358,9 +358,11 @@ const Profile: React.FC = () => {
     return () => clearTimeout(timeoutId)
   }, [cvViewOpen, profile])
 
-  const loadTemplateForViewer = async (cvId: string, cvFields: Record<string, string>) => {
+  const loadTemplateForViewer = async (cvId: any, cvFields: Record<string, string>) => {
     try {
-      const template = await fetchCVSampleById(cvId)
+      const id = typeof cvId === 'string' ? cvId : (cvId && (cvId as any)._id) ? (cvId as any)._id : ''
+      if (!id) throw new Error('Invalid cvId')
+      const template = await fetchCVSampleById(id)
       
       // Simply set avatar src in the template
       let modifiedHtml = template.html
@@ -420,9 +422,11 @@ const Profile: React.FC = () => {
     }
   }, [cvModalOpen, editor, profile])
 
-  const loadTemplateAndApplyData = async (cvId: string, cvFields: Record<string, string>) => {
+  const loadTemplateAndApplyData = async (cvId: any, cvFields: Record<string, string>) => {
     try {
-      const template = await fetchCVSampleById(cvId)
+      const id = typeof cvId === 'string' ? cvId : (cvId && (cvId as any)._id) ? (cvId as any)._id : ''
+      if (!id) throw new Error('Invalid cvId')
+      const template = await fetchCVSampleById(id)
       console.log('Loading template for editor:', template.name)
       
       // Clear existing content first
@@ -516,13 +520,19 @@ const Profile: React.FC = () => {
       }
       
       // Load template from cvId
-      const template = await fetchCVSampleById((profile as any).cvId)
+      const id = typeof (profile as any).cvId === 'string' 
+        ? (profile as any).cvId 
+        : ((profile as any).cvId && (profile as any).cvId._id) 
+          ? (profile as any).cvId._id 
+          : ''
+      if (!id) throw new Error('Invalid cvId')
+      const template = await fetchCVSampleById(id)
       setSelectedTemplate(template)
       setCvModalOpen(true)
       
       // Load template and apply existing data from database
       setTimeout(() => {
-        loadTemplateAndApplyData(template, (profile as any).cvFields || {})
+        loadTemplateAndApplyData(id, (profile as any).cvFields || {})
       }, 500)
       
       message.success(`Đã mở CV để chỉnh sửa: ${template.name}`)

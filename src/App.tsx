@@ -8,6 +8,8 @@ import CompanyDetail from './pages/CompanyDetail'
 import Profile from './pages/Profile'
 import CvViewer from './pages/CvViewer'
 import SearchResults from './pages/SearchResults'
+import ScrollToTop from './components/ScrollToTop'
+import BackToTopButton from './components/BackToTopButton'
 import './styles.css'
 import 'antd/dist/reset.css'
 import { ConfigProvider, theme } from 'antd'
@@ -36,6 +38,7 @@ const App: React.FC = () => {
           }
         }}
       >
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<SearchResults />} />
@@ -46,6 +49,7 @@ const App: React.FC = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
         </Routes>
+        <BackToTopButton />
       </ConfigProvider>
     </UserProvider>
   )
