@@ -646,7 +646,7 @@ const Profile: React.FC = () => {
     
     try {
       const cvFields = buildCvJsonFromEditor()
-      const response = await cvBuilderAPI.saveCv({ 
+      await cvBuilderAPI.saveCv({ 
         cvId: selectedTemplate._id,
         cvFields: cvFields 
       })
