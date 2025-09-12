@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Card, Typography, Steps } from 'antd';
+import { Card, Typography, Steps, message } from 'antd';
 import { FileImageOutlined, EditOutlined } from '@ant-design/icons';
 import CVTemplateSelector from '../../components/CVBuilder/CVTemplateSelector';
 import CVBuilder from '../../components/CVBuilder/CVBuilder';
 import { type CVSampleData } from '../../apis/cv-samples.api';
+import { cvBuilderAPI } from '../../apis/cv-builder.api';
 
 const { Title } = Typography;
 
@@ -34,10 +35,15 @@ const CVBuilderPage: React.FC = () => {
     setCurrentStep(0);
   };
 
-  const handleSave = (cvData: { cvId: string; cvFields: any }) => {
-    console.log('CV Data to save:', cvData);
-    // TODO: Implement save to backend
-    // This would typically call an API to save the user's CV data
+  const handleSave = async (cvData: { cvId: string; cvFields: any }) => {
+    try {
+      console.log('CV Data to save:', cvData);
+      await cvBuilderAPI.saveCv(cvData);
+      message.success('CV đã được lưu thành công!');
+    } catch (error: any) {
+      console.error('Error saving CV:', error);
+      message.error('Lỗi khi lưu CV: ' + (error?.response?.data?.message || error?.message || ''));
+    }
   };
 
   const renderStepContent = () => {

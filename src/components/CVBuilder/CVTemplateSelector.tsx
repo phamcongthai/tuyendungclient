@@ -16,6 +16,7 @@ import {
   FileImageOutlined,
 } from '@ant-design/icons';
 import { fetchActiveCVSamples, type CVSampleData } from '../../apis/cv-samples.api';
+import { cvBuilderAPI } from '../../apis/cv-builder.api';
 
 const { Title, Text } = Typography;
 
@@ -39,8 +40,15 @@ const CVTemplateSelector: React.FC<CVTemplateSelectorProps> = ({
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const data = await fetchActiveCVSamples();
-      setTemplates(data);
+      // Try CV Builder API first, fallback to public API
+      try {
+        const data = await cvBuilderAPI.getTemplates();
+        setTemplates(data);
+      } catch (error) {
+        console.warn('CV Builder API failed, trying public API:', error);
+        const data = await fetchActiveCVSamples();
+        setTemplates(data);
+      }
     } catch (error) {
       message.error('Không thể tải danh sách mẫu CV');
       console.error('Error loading CV templates:', error);

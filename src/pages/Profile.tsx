@@ -3,6 +3,7 @@ import { Layout, Card, Form, Input, DatePicker, Select, Upload, Button, Space, T
 import { EditOutlined } from '@ant-design/icons'
 import { usersAPI } from '../apis/users.api'
 import { fetchCVSampleById, type CVSampleData } from '../apis/cv-samples.api'
+import { cvBuilderAPI } from '../apis/cv-builder.api'
 import dayjs from 'dayjs'
 import GrapeJS from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
@@ -645,7 +646,7 @@ const Profile: React.FC = () => {
     
     try {
       const cvFields = buildCvJsonFromEditor()
-      const response = await usersAPI.updateMe({ 
+      const response = await cvBuilderAPI.saveCv({ 
         cvId: selectedTemplate._id,
         cvFields: cvFields 
       })
