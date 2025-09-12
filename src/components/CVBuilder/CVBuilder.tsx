@@ -6,8 +6,7 @@ import {
   Typography,
   message,
   Row,
-  Col,
-  Divider,
+  Col
 } from 'antd';
 import {
   SaveOutlined,
@@ -19,7 +18,7 @@ import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import { type CVSampleData } from '../../apis/cv-samples.api';
 
-const { Title, Text } = Typography;
+const { Title} = Typography;
 
 interface CVBuilderProps {
   template: CVSampleData;
@@ -134,7 +133,6 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
     editorInstance.Commands.add('save-cv', {
       run: (editor: any) => {
         const html = editor.getHtml();
-        const css = editor.getCss();
         
         // Extract form data from the editor
         const cvFields = extractCVFields(html);
@@ -154,9 +152,13 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
   }, [template]);
 
   const extractCVFields = (html: string) => {
-    // This function would extract form data from the HTML
-    // For now, return a basic structure
-    return {
+    // Create a temporary DOM element to parse the HTML
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Extract form data from input fields and text areas
+    const inputs = tempDiv.querySelectorAll('input, textarea, select');
+    const extractedData: any = {
       personalInfo: {
         fullName: '',
         email: '',
@@ -171,6 +173,33 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
       skills: [],
       certifications: [],
     };
+    
+    // Extract values from form elements
+    inputs.forEach((input: any) => {
+      const name = input.name || input.id;
+      const value = input.value || input.textContent || '';
+      
+      if (name) {
+        // Map common field names to our structure
+        if (name.includes('name') || name.includes('fullName')) {
+          extractedData.personalInfo.fullName = value;
+        } else if (name.includes('email')) {
+          extractedData.personalInfo.email = value;
+        } else if (name.includes('phone')) {
+          extractedData.personalInfo.phone = value;
+        } else if (name.includes('address')) {
+          extractedData.personalInfo.address = value;
+        } else if (name.includes('birth') || name.includes('dob')) {
+          extractedData.personalInfo.dateOfBirth = value;
+        } else if (name.includes('website') || name.includes('url')) {
+          extractedData.personalInfo.website = value;
+        } else if (name.includes('summary') || name.includes('objective')) {
+          extractedData.summary = value;
+        }
+      }
+    });
+    
+    return extractedData;
   };
 
   const handleSave = () => {
