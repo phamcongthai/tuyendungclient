@@ -36,119 +36,137 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorRef.current || !template) return;
 
-    // Initialize GrapesJS editor
-    const editorInstance = grapesjs.init({
-      container: editorRef.current,
-      height: '100vh',
-      width: '100%',
-      storageManager: false,
-      plugins: [],
-      pluginsOpts: {},
-      canvas: {
-        styles: [
-          'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css',
-        ],
-      },
-      blockManager: {
-        appendTo: '.blocks-container',
-      },
-      layerManager: {
-        appendTo: '.layers-container',
-      },
-      traitManager: {
-        appendTo: '.traits-container',
-      },
-      selectorManager: {
-        appendTo: '.styles-container',
-      },
-      panels: {
-        defaults: [
-          {
-            id: 'basic-actions',
-            el: '.panel__basic-actions',
-            buttons: [
-              {
-                id: 'visibility',
-                active: true,
-                className: 'btn-toggle-borders',
-                label: '<i class="fa fa-clone"></i>',
-                command: 'sw-visibility',
-              },
-            ],
-          },
-          {
-            id: 'panel-devices',
-            el: '.panel__devices',
-            buttons: [
-              {
-                id: 'device-desktop',
-                label: '<i class="fa fa-television"></i>',
-                command: 'set-device-desktop',
-                active: true,
-                togglable: false,
-              },
-              {
-                id: 'device-tablet',
-                label: '<i class="fa fa-tablet"></i>',
-                command: 'set-device-tablet',
-                togglable: false,
-              },
-              {
-                id: 'device-mobile',
-                label: '<i class="fa fa-mobile"></i>',
-                command: 'set-device-mobile',
-                togglable: false,
-              },
-            ],
-          },
-        ],
-      },
-      deviceManager: {
-        devices: [
-          {
-            name: 'Desktop',
-            width: '',
-          },
-          {
-            name: 'Tablet',
-            width: '768px',
-            widthMedia: '992px',
-          },
-          {
-            name: 'Mobile',
-            width: '320px',
-            widthMedia: '768px',
-          },
-        ],
-      },
-    });
+    try {
+      // Initialize GrapesJS editor
+      const editorInstance = grapesjs.init({
+        container: editorRef.current,
+        height: '100vh',
+        width: '100%',
+        storageManager: false,
+        plugins: [],
+        pluginsOpts: {},
+        canvas: {
+          styles: [
+            'https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css',
+          ],
+        },
+        blockManager: {
+          appendTo: '.blocks-container',
+        },
+        layerManager: {
+          appendTo: '.layers-container',
+        },
+        traitManager: {
+          appendTo: '.traits-container',
+        },
+        selectorManager: {
+          appendTo: '.styles-container',
+        },
+        panels: {
+          defaults: [
+            {
+              id: 'basic-actions',
+              el: '.panel__basic-actions',
+              buttons: [
+                {
+                  id: 'visibility',
+                  active: true,
+                  className: 'btn-toggle-borders',
+                  label: '<i class="fa fa-clone"></i>',
+                  command: 'sw-visibility',
+                },
+              ],
+            },
+            {
+              id: 'panel-devices',
+              el: '.panel__devices',
+              buttons: [
+                {
+                  id: 'device-desktop',
+                  label: '<i class="fa fa-television"></i>',
+                  command: 'set-device-desktop',
+                  active: true,
+                  togglable: false,
+                },
+                {
+                  id: 'device-tablet',
+                  label: '<i class="fa fa-tablet"></i>',
+                  command: 'set-device-tablet',
+                  togglable: false,
+                },
+                {
+                  id: 'device-mobile',
+                  label: '<i class="fa fa-mobile"></i>',
+                  command: 'set-device-mobile',
+                  togglable: false,
+                },
+              ],
+            },
+          ],
+        },
+        deviceManager: {
+          devices: [
+            {
+              name: 'Desktop',
+              width: '',
+            },
+            {
+              name: 'Tablet',
+              width: '768px',
+              widthMedia: '992px',
+            },
+            {
+              name: 'Mobile',
+              width: '320px',
+              widthMedia: '768px',
+            },
+          ],
+        },
+      });
 
-    // Load template HTML and CSS
-    editorInstance.setComponents(template.html);
-    editorInstance.setStyle(template.css);
+      // Check if editor instance was created successfully
+      if (!editorInstance) {
+        console.error('Failed to initialize GrapesJS editor');
+        message.error('Không thể khởi tạo trình chỉnh sửa CV');
+        return;
+      }
 
-    // Add custom commands for CV fields
-    editorInstance.Commands.add('save-cv', {
-      run: (editor: any) => {
-        const html = editor.getHtml();
-        
-        // Extract form data from the editor
-        const cvFields = extractCVFields(html);
-        
-        onSave({
-          cvId: template._id,
-          cvFields: cvFields,
-        });
-      },
-    });
+      // Load template HTML and CSS with null checks
+      if (template.html) {
+        editorInstance.setComponents(template.html);
+      }
+      if (template.css) {
+        editorInstance.setStyle(template.css);
+      }
 
-    setEditor(editorInstance);
+      // Add custom commands for CV fields
+      editorInstance.Commands.add('save-cv', {
+        run: (editor: any) => {
+          const html = editor.getHtml();
+          
+          // Extract form data from the editor
+          const cvFields = extractCVFields(html);
+          
+          onSave({
+            cvId: template._id,
+            cvFields: cvFields,
+          });
+        },
+      });
 
-    return () => {
-      editorInstance.destroy();
-    };
+      setEditor(editorInstance);
+
+      return () => {
+        if (editorInstance) {
+          editorInstance.destroy();
+        }
+      };
+    } catch (error) {
+      console.error('Error initializing CV builder:', error);
+      message.error('Lỗi khi khởi tạo trình chỉnh sửa CV');
+    }
   }, [template]);
 
   const extractCVFields = (html: string) => {
@@ -203,13 +221,17 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
   };
 
   const handleSave = () => {
-    if (!editor) return;
+    if (!editor) {
+      message.error('Trình chỉnh sửa chưa sẵn sàng');
+      return;
+    }
     
     setSaving(true);
     try {
       editor.runCommand('save-cv');
       message.success('CV đã được lưu thành công!');
     } catch (error) {
+      console.error('Error saving CV:', error);
       message.error('Lỗi khi lưu CV');
     } finally {
       setSaving(false);
@@ -217,60 +239,76 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
   };
 
   const handlePreview = () => {
-    if (!editor) return;
+    if (!editor) {
+      message.error('Trình chỉnh sửa chưa sẵn sàng');
+      return;
+    }
     
-    const html = editor.getHtml();
-    const css = editor.getCss();
+    try {
+      const html = editor.getHtml();
+      const css = editor.getCss();
+      
+      // Open preview in new window
+      const previewWindow = window.open('', '_blank');
+      if (previewWindow) {
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>CV Preview</title>
+            <style>${css}</style>
+          </head>
+          <body>
+            ${html}
+          </body>
+          </html>
+        `);
+        previewWindow.document.close();
+      }
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      message.error('Lỗi khi tạo xem trước');
+    }
+  };
+
+  const handleDownload = () => {
+    if (!editor) {
+      message.error('Trình chỉnh sửa chưa sẵn sàng');
+      return;
+    }
     
-    // Open preview in new window
-    const previewWindow = window.open('', '_blank');
-    if (previewWindow) {
-      previewWindow.document.write(`
+    try {
+      const html = editor.getHtml();
+      const css = editor.getCss();
+      
+      const fullHtml = `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
-          <title>CV Preview</title>
+          <title>CV - ${template.name}</title>
           <style>${css}</style>
         </head>
         <body>
           ${html}
         </body>
         </html>
-      `);
-      previewWindow.document.close();
+      `;
+      
+      const blob = new Blob([fullHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cv-${template.name.toLowerCase().replace(/\s+/g, '-')}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading CV:', error);
+      message.error('Lỗi khi tải xuống CV');
     }
-  };
-
-  const handleDownload = () => {
-    if (!editor) return;
-    
-    const html = editor.getHtml();
-    const css = editor.getCss();
-    
-    const fullHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>CV - ${template.name}</title>
-        <style>${css}</style>
-      </head>
-      <body>
-        ${html}
-      </body>
-      </html>
-    `;
-    
-    const blob = new Blob([fullHtml], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `cv-${template.name.toLowerCase().replace(/\s+/g, '-')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
   return (

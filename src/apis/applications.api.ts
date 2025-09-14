@@ -18,6 +18,10 @@ export const applicationsAPI = {
     const res = await axiosInstance.post('/applications', payload);
     return res.data;
   },
+  checkApplication: async (jobId: string) => {
+    const res = await axiosInstance.get(`/applications/check?jobId=${jobId}`);
+    return res.data;
+  },
 };
 
 

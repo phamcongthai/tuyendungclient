@@ -37,7 +37,6 @@ const CVBuilderPage: React.FC = () => {
 
   const handleSave = async (cvData: { cvId: string; cvFields: any }) => {
     try {
-      console.log('CV Data to save:', cvData);
       await cvBuilderAPI.saveCv(cvData);
       message.success('CV đã được lưu thành công!');
     } catch (error: any) {

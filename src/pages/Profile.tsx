@@ -48,19 +48,21 @@ const Profile: React.FC = () => {
 
   useEffect(() => {
     if (!cvModalOpen || initRef.current) return
-    const ed = GrapeJS.init({
-      container: '#gjs-modal',
-      height: '700px',
-      fromElement: false,
-      storageManager: false,
-      blockManager: { appendTo: '#gjs-modal-blocks' },
-      styleManager: {
-        sectors: [
-          {
-            name: 'Typography',
-            open: false,
-            buildProps: ['font-family', 'font-size', 'color', 'line-height', 'letter-spacing', 'text-align']
-          },
+    
+    try {
+      const ed = GrapeJS.init({
+        container: '#gjs-modal',
+        height: '700px',
+        fromElement: false,
+        storageManager: false,
+        blockManager: { appendTo: '#gjs-modal-blocks' },
+        styleManager: {
+          sectors: [
+            {
+              name: 'Typography',
+              open: false,
+              buildProps: ['font-family', 'font-size', 'color', 'line-height', 'letter-spacing', 'text-align']
+            },
           {
             name: 'Decorations',
             open: false,
@@ -238,13 +240,17 @@ const Profile: React.FC = () => {
       `
     })
 
-    setEditor(ed)
-    initRef.current = true
+      setEditor(ed)
+      initRef.current = true
 
-    return () => {
-      try { ed.destroy() } catch {}
-      initRef.current = false
-      setEditor(null)
+      return () => {
+        try { ed.destroy() } catch {}
+        initRef.current = false
+        setEditor(null)
+      }
+    } catch (error) {
+      console.error('Error initializing CV editor:', error)
+      message.error('Lỗi khi khởi tạo trình chỉnh sửa CV')
     }
   }, [cvModalOpen, selectedTemplate])
 
@@ -255,7 +261,6 @@ const Profile: React.FC = () => {
     // Load template with a small delay to ensure editor is ready
     const loadTemplate = async () => {
       try {
-        console.log('Loading selected template:', selectedTemplate.name)
         
         // Clear existing content first
         editor.setComponents('')
@@ -290,23 +295,33 @@ const Profile: React.FC = () => {
   const viewerInitRef = useRef(false)
   useEffect(() => {
     if (!cvViewOpen || viewerInitRef.current) return
-    const ed = GrapeJS.init({
-      container: '#gjs-view',
-      height: '700px',
-      fromElement: false,
-      storageManager: false,
-      blockManager: { appendTo: undefined },
-      layerManager: { appendTo: undefined },
-      selectorManager: { appendTo: undefined },
-      styleManager: { appendTo: undefined },
-      panels: { defaults: [] },
-    })
-    // Disable editing interactions
+    
     try {
-      ed.off('component:selected', () => {});
-      ed.Panels.getPanels().reset([]);
-      ed.BlockManager.getAll().reset([]);
-    } catch {}
+      const ed = GrapeJS.init({
+        container: '#gjs-view',
+        height: '700px',
+        fromElement: false,
+        storageManager: false,
+        blockManager: { appendTo: undefined },
+        layerManager: { appendTo: undefined },
+        selectorManager: { appendTo: undefined },
+        styleManager: { appendTo: undefined },
+        panels: { defaults: [] },
+      })
+      
+      // Check if editor was created successfully
+      if (!ed) {
+        console.error('Failed to initialize CV viewer');
+        message.error('Không thể khởi tạo trình xem CV');
+        return;
+      }
+      
+      // Disable editing interactions
+      try {
+        ed.off('component:selected', () => {});
+        ed.Panels.getPanels().reset([]);
+        ed.BlockManager.getAll().reset([]);
+      } catch {}
     // Basic styles consistent with builder
     ed.setStyle(`
       .cv-container { font-family: Inter, system-ui, Arial, sans-serif; color: #111827; background: #ffffff; }
@@ -318,13 +333,17 @@ const Profile: React.FC = () => {
       .cv-section { margin-bottom: 18px; }
       .cv-section-title { font-size: 16px; font-weight: 700; color: #1f4e79; }
       .cv-muted { color: #6B7280; font-size: 12px; }
-    `)
-    viewerRef.current = ed
-    viewerInitRef.current = true
-    return () => {
-      try { ed.destroy() } catch {}
-      viewerRef.current = null
-      viewerInitRef.current = false
+      `)
+      viewerRef.current = ed
+      viewerInitRef.current = true
+      return () => {
+        try { ed.destroy() } catch {}
+        viewerRef.current = null
+        viewerInitRef.current = false
+      }
+    } catch (error) {
+      console.error('Error initializing CV viewer:', error)
+      message.error('Lỗi khi khởi tạo trình xem CV')
     }
   }, [cvViewOpen])
 
@@ -337,7 +356,6 @@ const Profile: React.FC = () => {
       try {
         // If using new CV structure (cvId + cvFields)
         if ((profile as any)?.cvId && (profile as any)?.cvFields) {
-          console.log('Loading CV for viewer:', (profile as any).cvId, (profile as any).cvFields)
           await loadTemplateForViewer((profile as any).cvId, (profile as any).cvFields)
         }
         // Fallback to old cvData structure
@@ -403,54 +421,77 @@ const Profile: React.FC = () => {
 
   // Prefill editor from saved CV data when modal and editor are ready
   useEffect(() => {
-    if (!cvModalOpen || !editor) return
+    if (!cvModalOpen || !editor || !selectedTemplate) return
     
-    // If using new CV structure (cvId + cvFields)
-    if ((profile as any)?.cvId && (profile as any)?.cvFields) {
-      // Load template and apply user data
-      loadTemplateAndApplyData((profile as any).cvId, (profile as any).cvFields)
-    } 
-    // Fallback to old cvData structure
-    else {
-      const raw = (profile as any)?.cvData
-      if (!raw) return
+    // Add a small delay to ensure editor is fully ready
+    const loadEditorData = async () => {
       try {
-        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-        if (parsed.fields) {
-          applyCvJsonToEditor(parsed.fields)
+        // If using new CV structure (cvId + cvFields)
+        if ((profile as any)?.cvId && (profile as any)?.cvFields) {
+          await loadTemplateAndApplyData((profile as any).cvId, (profile as any).cvFields)
+        } 
+        // Fallback to old cvData structure
+        else {
+          const raw = (profile as any)?.cvData
+          if (!raw) return
+          try {
+            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+            if (parsed.fields) {
+              applyCvJsonToEditor(parsed.fields)
+            }
+          } catch {}
         }
-      } catch {}
+      } catch (error) {
+        console.error('Error loading CV for editor:', error)
+      }
     }
-  }, [cvModalOpen, editor, profile])
+    
+    const timeoutId = setTimeout(loadEditorData, 300)
+    return () => clearTimeout(timeoutId)
+  }, [cvModalOpen, editor, selectedTemplate, profile])
 
   const loadTemplateAndApplyData = async (cvId: any, cvFields: Record<string, string>) => {
     try {
       const id = typeof cvId === 'string' ? cvId : (cvId && (cvId as any)._id) ? (cvId as any)._id : ''
       if (!id) throw new Error('Invalid cvId')
       const template = await fetchCVSampleById(id)
-      console.log('Loading template for editor:', template.name)
       
       // Clear existing content first
       editor.setComponents('')
       editor.setStyle('')
       
+      // Simply set avatar src in the template (same as viewer)
+      let modifiedHtml = template.html
+      if (profile?.avatar) {
+        // Replace src="" with actual avatar URL
+        modifiedHtml = modifiedHtml.replace(
+          'src="" alt="Profile Photo" data-field="avatar"',
+          `src="${profile.avatar}" alt="Profile Photo" data-field="avatar"`
+        )
+      }
+      
       // Load template content
-      editor.setComponents(template.html)
+      editor.setComponents(modifiedHtml)
       editor.setStyle(template.css)
       
-      // Apply user data to template
-      if (cvFields) {
-        applyCvJsonToEditor(cvFields)
-      }
-      
-      // Auto-fill avatar from user profile (always override with current avatar)
-      const doc = getEditorDocument()
-      if (doc) {
-        const avatarEl = doc.querySelector('[data-field="avatar"]') as HTMLImageElement
-        if (avatarEl && profile?.avatar) {
-          avatarEl.src = profile.avatar
+      // Wait a bit for the DOM to be ready, then apply other fields
+      setTimeout(() => {
+        const doc = getEditorDocument()
+        if (doc) {
+          // Apply user data to template (excluding avatar since it's already set)
+          if (cvFields) {
+            Object.keys(cvFields).forEach((k) => {
+              if (k !== 'avatar') { // Skip avatar since it's handled above
+                const el = doc.querySelector(`[data-field="${k}"]`)
+                if (el) {
+                  el.textContent = String(cvFields[k] ?? '')
+                }
+              }
+            })
+          }
         }
-      }
+      }, 200)
+      
     } catch (error) {
       console.error('Error loading template:', error)
       message.error('Không thể tải mẫu CV')
@@ -506,7 +547,6 @@ const Profile: React.FC = () => {
       setSelectedTemplate(template)
       setCvModalOpen(true)
       message.success(`Đã chọn mẫu CV: ${template.name}`)
-      console.log('Selected template:', template)
     } catch (error) {
       message.error('Không thể tải mẫu CV')
       console.error('Error selecting template:', error)
@@ -530,11 +570,6 @@ const Profile: React.FC = () => {
       const template = await fetchCVSampleById(id)
       setSelectedTemplate(template)
       setCvModalOpen(true)
-      
-      // Load template and apply existing data from database
-      setTimeout(() => {
-        loadTemplateAndApplyData(id, (profile as any).cvFields || {})
-      }, 500)
       
       message.success(`Đã mở CV để chỉnh sửa: ${template.name}`)
     } catch (error) {
@@ -600,9 +635,8 @@ const Profile: React.FC = () => {
       nodes.forEach((el) => {
         const key = el.getAttribute('data-field') || ''
         if (key) {
-          // Không lưu avatar vào cvFields vì avatar luôn lấy từ user profile
-          if (el.tagName === 'IMG' && key === 'avatar') {
-            // Skip avatar field - it will always come from user profile
+          // Skip avatar field - it will always come from user profile
+          if (key === 'avatar') {
             return
           } else {
             fields[key] = (el.textContent || '').trim()
@@ -619,17 +653,14 @@ const Profile: React.FC = () => {
     const doc = getEditorDocument()
     if (doc) {
       Object.keys(fields).forEach((k) => {
+        // Skip avatar since it's handled separately in loadTemplateAndApplyData
+        if (k === 'avatar') return
+        
         const el = doc.querySelector(`[data-field="${k}"]`)
         if (el) {
           el.textContent = String(fields[k] ?? '')
         }
       })
-      
-      // Luôn tự động điền avatar từ user profile
-      const avatarEl = doc.querySelector('[data-field="avatar"]') as HTMLImageElement
-      if (avatarEl && profile?.avatar) {
-        avatarEl.src = profile.avatar
-      }
     }
   }
 
@@ -745,9 +776,40 @@ const Profile: React.FC = () => {
       <Header />
       <Layout.Content style={{ background: '#F3F5F7' }}>
         <div style={{ width: '80vw', margin: '0 auto', padding: '24px 0' }}>
-          <Title level={2} style={{ marginBottom: 16 }}>Hồ sơ cá nhân</Title>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: 20 }}>
-            <Card style={{ borderRadius: 16 }}>
+          {/* Hero header */}
+          <div style={{
+            background: 'linear-gradient(180deg, #F0FFF7 0%, #FFFFFF 60%)',
+            border: '1px solid #e8f5e8',
+            borderRadius: 16,
+            padding: 20,
+            boxShadow: '0 8px 24px rgba(16,185,129,0.06)',
+            marginBottom: 16
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', border: '4px solid #e8f5e8', background: '#f5f5f5', overflow: 'hidden', display: 'grid', placeItems: 'center' }}>
+                {profile?.avatar ? (
+                  <img src={profile.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ color: '#00b14f', fontWeight: 700, fontSize: 24 }}>
+                    {profile?.fullName ? String(profile.fullName).charAt(0).toUpperCase() : 'U'}
+                  </div>
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Title level={3} style={{ margin: 0 }}>{profile?.fullName || 'Hồ sơ cá nhân'}</Title>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                  {profile?.city && <Tag>{profile.city}</Tag>}
+                  {profile?.desiredPosition && <Tag color="#d1fae5" style={{ color: '#065f46', borderColor: '#d1fae5' }}>{profile.desiredPosition}</Tag>}
+                </div>
+              </div>
+              {/* Actions moved to form footer to avoid duplicate buttons */}
+            </div>
+          </div>
+
+          {/* Main grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 2fr', gap: 20 }}>
+            {/* Sidebar summary */}
+            <Card style={{ borderRadius: 16, position: 'sticky', top: 16, alignSelf: 'start' }}>
               <div style={{ display: 'grid', gap: 12 }}>
                 <div style={{ display: 'grid', gap: 8 }}>
                   <Text strong>Ảnh đại diện</Text>
@@ -805,28 +867,40 @@ const Profile: React.FC = () => {
               </div>
             </Card>
 
+            {/* Main form */}
             <Card style={{ borderRadius: 16 }}>
               <Form form={form} layout="vertical">
-                <Form.Item name="dateOfBirth" label="Ngày sinh">
-                  <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-                </Form.Item>
-                <Form.Item name="gender" label="Giới tính">
-                  <Select options={[{value:'male',label:'Nam'},{value:'female',label:'Nữ'},{value:'other',label:'Khác'}]} />
-                </Form.Item>
-                <Form.Item name="city" label="Tỉnh/Thành phố">
-                  <Input placeholder="Tỉnh/Thành phố" />
-                </Form.Item>
-                <Form.Item name="desiredPosition" label="Vị trí mong muốn">
-                  <Input placeholder="VD: Java Developer" />
-                </Form.Item>
-                <Form.Item name="summaryExperience" label="Kinh nghiệm tổng quát">
-                  <Input placeholder="VD: 3 năm Java Developer" />
-                </Form.Item>
-                <Form.Item name="skills" label="Kỹ năng chính (phân tách bởi dấu phẩy)">
-                  <Input placeholder="VD: Java, Spring, SQL" />
-                </Form.Item>
-                <Form.Item label="CV">
-                  <div style={{ display: 'grid', gap: 8 }}>
+                <Title level={4} style={{ marginTop: 0 }}>Thông tin cá nhân</Title>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <Form.Item name="dateOfBirth" label="Ngày sinh">
+                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                  </Form.Item>
+                  <Form.Item name="gender" label="Giới tính">
+                    <Select options={[{value:'male',label:'Nam'},{value:'female',label:'Nữ'},{value:'other',label:'Khác'}]} />
+                  </Form.Item>
+                  <Form.Item name="city" label="Tỉnh/Thành phố">
+                    <Input placeholder="Tỉnh/Thành phố" />
+                  </Form.Item>
+                  <Form.Item name="desiredPosition" label="Vị trí mong muốn">
+                    <Input placeholder="VD: Java Developer" />
+                  </Form.Item>
+                </div>
+
+                <Divider />
+                <Title level={4}>Kinh nghiệm & Tóm tắt</Title>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <Form.Item name="summaryExperience" label="Kinh nghiệm tổng quát">
+                    <Input placeholder="VD: 3 năm Java Developer" />
+                  </Form.Item>
+                  <Form.Item name="skills" label="Kỹ năng chính (phân tách bởi dấu phẩy)">
+                    <Input placeholder="VD: Java, Spring, SQL" />
+                  </Form.Item>
+                </div>
+
+                <Divider />
+                <Title level={4}>CV</Title>
+                <Form.Item>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     <Button type="primary" onClick={() => setTemplateModalOpen(true)}>Tạo CV mới</Button>
                     {(profile as any)?.cvId && (
                       <Button onClick={handleEditExistingCV}>Chỉnh sửa CV</Button>
@@ -836,13 +910,8 @@ const Profile: React.FC = () => {
                       <Button danger onClick={handleDeleteCV}>Xóa CV</Button>
                     )}
                   </div>
-                  {(profile as any)?.cvId && (
-                    <div style={{ marginTop: 8, padding: 8, background: '#f6ffed', border: '1px solid #b7eb8f', borderRadius: 6 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                      </Text>
-                    </div>
-                  )}
                 </Form.Item>
+
                 <Form.Item>
                   <Space>
                     <Button type="primary" onClick={handleSave}>Lưu thay đổi</Button>
@@ -870,7 +939,6 @@ const Profile: React.FC = () => {
             onCancel={() => {
               setCvModalOpen(false)
               setSelectedTemplate(null)
-              console.log('CV modal closed, template reset')
             }}
             width={1000}
             footer={[

@@ -14,11 +14,13 @@ import './styles.css'
 import 'antd/dist/reset.css'
 import { ConfigProvider, theme } from 'antd'
 import { UserProvider } from './contexts/UserContext'
+import { SocketProvider } from './contexts/SocketContext'
 
 const App: React.FC = () => {
   return (
     <UserProvider>
-      <ConfigProvider
+      <SocketProvider>
+        <ConfigProvider
         theme={{
           algorithm: theme.defaultAlgorithm,
           token: {
@@ -50,7 +52,8 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login />} />
         </Routes>
         <BackToTopButton />
-      </ConfigProvider>
+        </ConfigProvider>
+      </SocketProvider>
     </UserProvider>
   )
 }
