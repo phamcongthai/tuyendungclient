@@ -36,6 +36,7 @@ const SearchResults: React.FC = () => {
     salaryMax: salary[1] || undefined,
     page: 1,
     limit: 12,
+    status: 'active',
   }), [keyword, location, categories, jobType, level, experience, salary])
 
   useEffect(() => {

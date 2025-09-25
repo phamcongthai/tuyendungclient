@@ -20,10 +20,11 @@ const JobCard: React.FC<JobCardProps> = ({ job }) => {
     }
     return "Không rõ";
   };
-  const formatDeadline = (deadline?: string) => {
-    if (!deadline) return ''
-    const dt = new Date(deadline)
-    return isNaN(dt.getTime()) ? deadline : dt.toLocaleDateString('vi-VN')
+  const formatDeadline = (job: JobData) => {
+    const raw: any = job.deadline
+    if (!raw) return ''
+    const dt = new Date(raw)
+    return isNaN(dt.getTime()) ? String(raw) : dt.toLocaleDateString('vi-VN')
   }
 
   return (
@@ -72,7 +73,7 @@ const JobCard: React.FC<JobCardProps> = ({ job }) => {
           )}
           {job.deadline && (
             <span className="px-3 py-1 bg-orange-50 rounded text-sm text-orange-700">
-              Hạn: {formatDeadline(job.deadline)}
+              Hạn: {formatDeadline(job)}
             </span>
           )}
         </div>

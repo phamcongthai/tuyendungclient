@@ -16,6 +16,7 @@ export const fetchJobs = async ({
   salaryMin,
   salaryMax,
   experience,
+  status,
 }: {
   page?: number;
   limit?: number;
@@ -28,10 +29,11 @@ export const fetchJobs = async ({
   salaryMin?: number;
   salaryMax?: number;
   experience?: string;
+  status?: 'draft' | 'active' | 'expired';
 }) => {
   try {
     const res = await axiosInstance.get<{ data: JobData[]; total: number }>('/jobs', {
-      params: { page, limit, search, jobType, level, category, categories, location, salaryMin, salaryMax, experience },
+      params: { page, limit, search, jobType, level, category, categories, location, salaryMin, salaryMax, experience, status },
     });
 
     // Log chi tiết dữ liệu trả về

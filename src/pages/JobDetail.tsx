@@ -126,10 +126,11 @@ const JobDetail: React.FC = () => {
   }, [job])
 
   const deadlineText = useMemo(() => {
-    if (!job?.deadline) return ''
-    const dt = new Date(job.deadline)
-    return isNaN(dt.getTime()) ? job.deadline : dt.toLocaleDateString('vi-VN')
-  }, [job?.deadline])
+    const raw = job?.deadline
+    if (!raw) return ''
+    const dt = new Date(raw as any)
+    return isNaN(dt.getTime()) ? String(raw) : dt.toLocaleDateString('vi-VN')
+  }, [job])
 
   return (
     <Layout>

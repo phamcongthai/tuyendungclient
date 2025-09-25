@@ -27,6 +27,8 @@ export type JobData = {
   jobType?: string;
   location?: string;
   address?: string;
+  // Lifecycle
+  status?: 'draft' | 'active' | 'expired';
   deadline?: string; 
   skills: string[];
   tags: string[];

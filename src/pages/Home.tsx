@@ -38,7 +38,7 @@ const Home: React.FC = () => {
     const getHotJobs = async () => {
       setLoadingHotJobs(true)
       try {
-        const { data, total } = await fetchJobs({ page: 1, limit: 6 })
+        const { data, total } = await fetchJobs({ page: 1, limit: 6, status: 'active' })
         setDisplayedJobs(data)
         setTotalJobs(total)
         setHasMore(data.length === 6 && total > 6)
@@ -52,7 +52,7 @@ const Home: React.FC = () => {
     const getFeaturedCompanies = async () => {
       setLoadingCompanies(true)
       try {
-        const { data } = await fetchJobs({ page: 1, limit: 20 })
+        const { data } = await fetchJobs({ page: 1, limit: 20, status: 'active' })
         // Lấy danh sách công ty duy nhất từ các job
         const companyMap = new Map<string, Company>()
         for (const job of data) {
@@ -140,7 +140,7 @@ const Home: React.FC = () => {
     setLoadingMore(true)
     try {
       const nextPage = currentPage + 1
-      const { data, total } = await fetchJobs({ page: nextPage, limit: 6 })
+      const { data, total } = await fetchJobs({ page: nextPage, limit: 6, status: 'active' })
       
       if (data.length > 0) {
         setDisplayedJobs(prev => [...prev, ...data])
