@@ -37,16 +37,6 @@ export const authAPI = {
       console.log(data);
       
       const response = await http.post(`/auth/register/user`, data);
-      // after account created, init blank user profile
-      const account = response.data?.user || response.data?.account;
-      const accountId = account?._id || account?.id;
-      if (accountId) {
-        try {
-          await http.post(`/users/init`, { accountId, fullName: data.fullName });
-        } catch (e) {
-          console.warn('Init blank user failed (non-blocking):', e);
-        }
-      }
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {
@@ -75,15 +65,6 @@ export const authAPI = {
   registerRecruiter: async (data: RegisterData & { companyName?: string }): Promise<AuthResponse> => {
     try {
       const response = await http.post(`/auth/register-recruiter`, data);
-      const account = response.data?.user || response.data?.account;
-      const accountId = account?._id || account?.id;
-      if (accountId) {
-        try {
-          await http.post(`/users/init`, { accountId, fullName: data.fullName });
-        } catch (e) {
-          console.warn('Init blank user failed (non-blocking):', e);
-        }
-      }
       return response.data;
     } catch (error: any) {
       if (error.response?.data) {

@@ -8,6 +8,7 @@ export const Header: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, loading } = useUser()
+  const recruiterUrl = (import.meta as any).env?.VITE_API_RECRUITER_URL as string | undefined
 
   const handleMenuClick = (key: string) => {
     if (location.pathname === '/') {
@@ -55,7 +56,7 @@ export const Header: React.FC = () => {
             }
           ]}
         />
-        <div className="actions">
+        <div className="actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           {!loading && (
             <>
               {user ? (
@@ -67,6 +68,22 @@ export const Header: React.FC = () => {
                 </>
               )}
             </>
+          )}
+          {recruiterUrl && (
+            <a
+              href={recruiterUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-end',
+                textDecoration: 'none'
+              }}
+            >
+              <span style={{ fontSize: 12, color: '#64748b', lineHeight: 1 }}>Bạn là nhà tuyển dụng?</span>
+              <span style={{ fontWeight: 600, color: '#0f172a', lineHeight: 1.2 }}>Đăng tuyển ngay »</span>
+            </a>
           )}
         </div>
       </div>

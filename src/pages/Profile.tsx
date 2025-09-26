@@ -8,6 +8,7 @@ import dayjs from 'dayjs'
 import GrapeJS from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import Header from '../components/Header'
+import { useUser } from '../contexts/UserContext'
 import Footer from '../components/Footer'
 import CVTemplateModal from '../components/CVTemplateModal'
 // import { applicationsAPI } from '../apis/applications.api'
@@ -16,6 +17,7 @@ const { Title, Text } = Typography
 
 const Profile: React.FC = () => {
   const [form] = Form.useForm()
+  const { user: accountUser } = useUser()
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [editor, setEditor] = useState<any>(null)
@@ -791,12 +793,12 @@ const Profile: React.FC = () => {
                   <img src={profile.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
                   <div style={{ color: '#00b14f', fontWeight: 700, fontSize: 24 }}>
-                    {profile?.fullName ? String(profile.fullName).charAt(0).toUpperCase() : 'U'}
+                    {accountUser?.fullName ? String(accountUser.fullName).charAt(0).toUpperCase() : 'U'}
                   </div>
                 )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <Title level={3} style={{ margin: 0 }}>{profile?.fullName || 'Hồ sơ cá nhân'}</Title>
+                <Title level={3} style={{ margin: 0 }}>{accountUser?.fullName || 'Hồ sơ cá nhân'}</Title>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
                   {profile?.city && <Tag>{profile.city}</Tag>}
                   {profile?.desiredPosition && <Tag color="#d1fae5" style={{ color: '#065f46', borderColor: '#d1fae5' }}>{profile.desiredPosition}</Tag>}
@@ -836,7 +838,7 @@ const Profile: React.FC = () => {
                         <img src={profile.avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
                         <div style={{ color: '#00b14f', fontWeight: 700, fontSize: 40 }}>
-                          {profile?.fullName ? String(profile.fullName).charAt(0).toUpperCase() : 'U'}
+                          {accountUser?.fullName ? String(accountUser.fullName).charAt(0).toUpperCase() : 'U'}
                         </div>
                       )}
                       <div style={{

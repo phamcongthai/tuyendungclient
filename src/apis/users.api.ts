@@ -5,6 +5,10 @@ export const usersAPI = {
     const res = await axiosInstance.get('/users/me');
     return res.data;
   },
+  async createEmpty(payload: { accountId: string; fullName?: string }) {
+    const res = await axiosInstance.post('/users/init', payload);
+    return res.data;
+  },
   async updateMe(payload: any) {
     const res = await axiosInstance.patch('/users/me', payload);
     return res.data;

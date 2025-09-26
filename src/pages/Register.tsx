@@ -10,15 +10,13 @@ import {
   Space,
   Row,
   Col,
-  Checkbox,
-  Alert
+  Checkbox
 } from 'antd';
 import { 
   UserOutlined, 
   MailOutlined, 
   LockOutlined, 
   SafetyOutlined,
-  BankOutlined,
   ArrowLeftOutlined,
   EyeInvisibleOutlined,
   EyeTwoTone
@@ -35,28 +33,18 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [isRecruiter, setIsRecruiter] = useState(false);
-  const [showCompanyField, setShowCompanyField] = useState(false);
 
-  const onFinish = async (values: RegisterData & { companyName?: string }) => {
+  const onFinish = async (values: RegisterData) => {
     setLoading(true);
     try {
-      let response;
-      
-      if (isRecruiter) {
-        response = await authAPI.registerRecruiter(values);
-      } else {
-        response = await authAPI.register(values);
-      }
+      const response = await authAPI.register(values);
 
       console.log('API Response:', response); // Debug log
 
-      // Backend returns { message: "Đăng ký thành công...", user: {...} }
-      // Check if the response has a success message
-      const isSuccess = response && 
-                       response.message && 
-                       (response.message.toLowerCase().includes('thành công') || 
-                        response.message.toLowerCase().includes('success'));
+      // Success if message indicates success OR a user/account object exists
+      const hasEntity = Boolean((response as any)?.user || (response as any)?.account);
+      const msg = (response as any)?.message?.toLowerCase?.() || '';
+      const isSuccess = hasEntity || (msg.includes('thành công') || msg.includes('success'));
 
       if (isSuccess) {
         // Show success message with SweetAlert
@@ -104,14 +92,6 @@ const Register: React.FC = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleRecruiterToggle = (checked: boolean) => {
-    setIsRecruiter(checked);
-    setShowCompanyField(checked);
-    if (!checked) {
-      form.setFieldsValue({ companyName: undefined });
     }
   };
 
@@ -204,26 +184,6 @@ const Register: React.FC = () => {
                 </Paragraph>
               </div>
 
-              {/* Recruiter Toggle */}
-              <div style={{ marginBottom: '32px' }}>
-                <Checkbox 
-                  checked={isRecruiter}
-                  onChange={(e) => handleRecruiterToggle(e.target.checked)}
-                  style={{ fontSize: '16px' }}
-                >
-                  <Text strong>Đăng ký dành cho nhà tuyển dụng</Text>
-                </Checkbox>
-                {isRecruiter && (
-                  <Alert
-                    message="Tài khoản nhà tuyển dụng"
-                    description="Bạn sẽ có thể đăng tin tuyển dụng, quản lý ứng viên và sử dụng các tính năng dành riêng cho doanh nghiệp."
-                    type="info"
-                    showIcon
-                    style={{ marginTop: '16px' }}
-                  />
-                )}
-              </div>
-
               {/* Form */}
               <Form
                 form={form}
@@ -262,23 +222,6 @@ const Register: React.FC = () => {
                     style={{ borderRadius: '8px', height: '52px', fontSize: '16px' }}
                   />
                 </Form.Item>
-
-                {showCompanyField && (
-                  <Form.Item
-                    name="companyName"
-                    label={<Text strong style={{ fontSize: '15px', color: '#1a1a1a' }}>Tên công ty</Text>}
-                    rules={[
-                      { required: true, message: 'Vui lòng nhập tên công ty' },
-                      { min: 2, message: 'Tên công ty phải có ít nhất 2 ký tự' }
-                    ]}
-                  >
-                    <Input 
-                      prefix={<BankOutlined style={{ color: '#00b14f' }} />}
-                      placeholder="Nhập tên công ty của bạn"
-                      style={{ borderRadius: '8px', height: '52px', fontSize: '16px' }}
-                    />
-                  </Form.Item>
-                )}
 
                 <Form.Item
                   name="password"
