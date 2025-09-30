@@ -6,12 +6,14 @@ import HeroSearch from '../components/HeroSearch'
 import CompanyCard from '../components/CompanyCard'
 import CategoryCard from '../components/CategoryCard'
 import { fetchFeaturedCategories } from '../apis/jobs.api'
-import { Layout, Row, Col, Tag, Button, Empty } from 'antd'
+import { Layout, Row, Col, Tag, Button, Empty, Card, Modal, Spin } from 'antd'
 import { FireOutlined, DollarOutlined, PlusOutlined } from '@ant-design/icons'
 import HotJobCardSkeleton from '../components/skeleton/HotJobCardSkeleton'
 import type { Company, JobData } from '../types/models'
 import { fetchJobs } from '../apis/jobs.api' // ✅ import từ api.ts
 import { useUser } from '../contexts/UserContext'
+import GlobalNotice from '../components/GlobalNotice'
+import { fetchActiveCVSamples, fetchCVSampleById, type CVSampleData } from '../apis/cv-samples.api'
 
 type FeaturedCategory = { _id: string; title: string; slug: string; logo?: string; jobCount: number }
 
@@ -28,6 +30,11 @@ const Home: React.FC = () => {
   const [totalJobs, setTotalJobs] = useState(0)
   const [featuredCategories, setFeaturedCategories] = useState<FeaturedCategory[]>([])
   const { user } = useUser()
+  const [cvSamples, setCvSamples] = useState<CVSampleData[]>([])
+  const [loadingCV, setLoadingCV] = useState<boolean>(true)
+  const [cvPreviewOpen, setCvPreviewOpen] = useState(false)
+  const [cvPreviewLoading, setCvPreviewLoading] = useState(false)
+  const [cvPreview, setCvPreview] = useState<CVSampleData | null>(null)
 
   // Debug log để kiểm tra user data
   console.log('Home - User data:', user);
@@ -122,10 +129,35 @@ const Home: React.FC = () => {
         setLoadingCategories(false)
       }
     }
+    const getCV = async () => {
+      setLoadingCV(true)
+      try {
+        const samples = await fetchActiveCVSamples()
+        setCvSamples(samples)
+      } catch (e) {
+        setCvSamples([])
+      } finally {
+        setLoadingCV(false)
+      }
+    }
     getHotJobs()
     getFeaturedCompanies()
     getFeaturedCategories()
+    getCV()
   }, [])
+
+  const openCVPreview = async (id: string) => {
+    try {
+      setCvPreviewOpen(true)
+      setCvPreviewLoading(true)
+      const data = await fetchCVSampleById(id)
+      setCvPreview(data)
+    } catch (e) {
+      setCvPreview(null)
+    } finally {
+      setCvPreviewLoading(false)
+    }
+  }
 
   const handleSearch = async (keyword: string, location: string) => {
     const q = new URLSearchParams()
@@ -213,6 +245,7 @@ const Home: React.FC = () => {
   return (
     <Layout>
       <Header />
+      <GlobalNotice />
       <Layout.Content style={{ background: '#F3F5F7' }}>
         
         <HeroSearch onSearch={handleSearch} />
@@ -580,6 +613,68 @@ const Home: React.FC = () => {
             </Row>
           </div>
         </section>
+
+        {/* CV Samples Section */}
+        <section className="section" id="cv">
+          <div className="container">
+            <div className="section-head">
+              <h2>Mẫu CV</h2>
+              <a href="#" onClick={(e) => e.preventDefault()} className="link">Xem tất cả</a>
+            </div>
+            <Row gutter={[14, 14]}>
+              {loadingCV
+                ? Array.from({ length: 6 }).map((_, idx) => (
+                    <Col key={idx} xs={24} sm={12} md={8} lg={6}>
+                      <div style={{ height: 220, background: '#f5f5f5', borderRadius: 12 }} />
+                    </Col>
+                  ))
+                : cvSamples.map((s) => (
+                    <Col key={s._id} xs={24} sm={12} md={8} lg={6}>
+                      <Card
+                        hoverable
+                        onClick={() => openCVPreview(s._id)}
+                        style={{ cursor: 'pointer' }}
+                        cover={
+                          s.demoImage ? (
+                            <img src={s.demoImage} alt={s.name} style={{ width: '100%', height: 200, objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ height: 200, background: '#f5f5f5' }} />
+                          )
+                        }
+                      >
+                        <Card.Meta title={s.name || s.title} />
+                      </Card>
+                    </Col>
+                  ))}
+            </Row>
+          </div>
+        </section>
+
+        <Modal
+          open={cvPreviewOpen}
+          onCancel={() => { setCvPreviewOpen(false); setCvPreview(null) }}
+          title={cvPreview?.name || 'Xem mẫu CV'}
+          width={1000}
+          footer={[
+            <Button key="close" onClick={() => { setCvPreviewOpen(false); setCvPreview(null) }}>Đóng</Button>
+          ]}
+        >
+          {cvPreviewLoading ? (
+            <div style={{ textAlign: 'center', padding: 40 }}>
+              <Spin />
+            </div>
+          ) : cvPreview ? (
+            <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+              <iframe
+                title={cvPreview.name}
+                style={{ width: '100%', height: 700, border: 'none' }}
+                srcDoc={`<!DOCTYPE html><html><head><meta charset=\"utf-8\"/><style>${cvPreview.css || ''}</style></head><body>${cvPreview.html || ''}</body></html>`}
+              />
+            </div>
+          ) : (
+            <div style={{ padding: 16 }}>Không thể tải xem trước mẫu CV.</div>
+          )}
+        </Modal>
 
         <section className="cta">
           <div className="container cta-inner">

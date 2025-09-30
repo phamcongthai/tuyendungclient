@@ -5,7 +5,8 @@ import {
   LogoutOutlined, 
   MailOutlined, 
   DownOutlined,
-  SettingOutlined
+  SettingOutlined,
+  FileTextOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
@@ -42,7 +43,7 @@ const UserProfileDropdown: React.FC = () => {
         await Swal.fire({
           icon: 'success',
           title: 'Đăng xuất thành công!',
-          text: 'Cảm ơn bạn đã sử dụng TopJobs',
+          text: 'Cảm ơn bạn đã sử dụng HiWork',
           confirmButtonText: 'Đóng',
           confirmButtonColor: '#00b14f',
           timer: 2000,
@@ -70,6 +71,13 @@ const UserProfileDropdown: React.FC = () => {
       icon: <UserOutlined />,
       label: 'Thông tin tài khoản',
       onClick: () => navigate('/profile')
+    },
+    // New item: Applied Jobs
+    {
+      key: 'applied-jobs',
+      icon: <FileTextOutlined />,
+      label: 'Việc làm đã ứng tuyển',
+      onClick: () => navigate('/applications')
     },
     user?.isVerified === true ? null : {
       key: 'verification',

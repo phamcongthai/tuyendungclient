@@ -177,7 +177,7 @@ const Register: React.FC = () => {
                 </Button>
                 
                 <Title level={1} style={{ margin: '0 0 16px 0', color: '#00b14f', fontSize: '32px', fontWeight: '700' }}>
-                  Chào mừng bạn đến với TopJobs
+                  Chào mừng bạn đến với HiWork
                 </Title>
                 <Paragraph style={{ color: '#666', margin: 0, fontSize: '18px', lineHeight: '1.6' }}>
                   Tạo tài khoản để khám phá cơ hội việc làm hấp dẫn
@@ -387,7 +387,7 @@ const Register: React.FC = () => {
                   color: 'white',
                   marginBottom: '30px'
                 }}>
-                  TopJobs
+                  HiWork
                 </div>
               </div>
 
@@ -417,7 +417,7 @@ const Register: React.FC = () => {
                   fontSize: '20px',
                   lineHeight: '1.6'
                 }}>
-                  TopJobs - Hệ sinh thái nhân sự tiên phong ứng dụng công nghệ tại Việt Nam
+                  HiWork - Hệ sinh thái nhân sự tiên phong ứng dụng công nghệ tại Việt Nam
                 </Paragraph>
               </div>
 

@@ -3,11 +3,14 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { Layout, Menu, Button } from 'antd'
 import { useUser } from '../contexts/UserContext'
 import UserProfileDropdown from './UserProfileDropdown'
+import NotificationDropdown from './NotificationDropdown'
+import { useSettings } from '../contexts/SettingsContext'
 
 export const Header: React.FC = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, loading } = useUser()
+  const { settings } = useSettings()
   const recruiterUrl = (import.meta as any).env?.VITE_API_RECRUITER_URL as string | undefined
 
   const handleMenuClick = (key: string) => {
@@ -32,7 +35,7 @@ export const Header: React.FC = () => {
   return (
     <Layout.Header className="site-header" style={{ background: '#ffffff', padding: 0 }}>
       <div className="container header-inner">
-        <div className="brand" onClick={() => navigate('/')}>TopJobs</div>
+        <div className="brand" onClick={() => navigate('/')}>{settings?.clientSiteName || 'HiWork'}</div>
         <Menu
           mode="horizontal"
           selectable={false}
@@ -48,15 +51,16 @@ export const Header: React.FC = () => {
             },
             { 
               key: 'cv', 
-              label: <a href="#" onClick={(e) => e.preventDefault()}>CV</a> 
+              label: <a href="#cv" onClick={(e) => { e.preventDefault(); handleMenuClick('cv') }}>CV</a> 
             },
             { 
               key: 'blog', 
-              label: <a href="#" onClick={(e) => e.preventDefault()}>Blog</a> 
+              label: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/blog'); }}>Blog</a> 
             }
           ]}
         />
         <div className="actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          {user && <NotificationDropdown />}
           {!loading && (
             <>
               {user ? (

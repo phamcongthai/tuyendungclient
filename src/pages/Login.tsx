@@ -62,7 +62,7 @@ const Login: React.FC = () => {
         await Swal.fire({
           icon: 'success',
           title: 'Đăng nhập thành công!',
-          text: `Chào mừng ${response.user.fullName} quay trở lại TopJobs`,
+          text: `Chào mừng ${response.user.fullName} quay trở lại HiWork`,
           confirmButtonText: 'Tiếp tục',
           confirmButtonColor: '#00b14f',
           timer: 2000,
@@ -325,7 +325,7 @@ const Login: React.FC = () => {
                   color: 'white',
                   marginBottom: '20px'
                 }}>
-                  TopJobs
+                  HiWork
                 </div>
               </div>
 
@@ -353,7 +353,7 @@ const Login: React.FC = () => {
                   fontSize: '18px',
                   lineHeight: '1.6'
                 }}>
-                  TopJobs - Hệ sinh thái nhân sự tiên phong ứng dụng công nghệ tại Việt Nam
+                  HiWork - Hệ sinh thái nhân sự tiên phong ứng dụng công nghệ tại Việt Nam
                 </Paragraph>
               </div>
 

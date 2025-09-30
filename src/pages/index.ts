@@ -1,3 +1,5 @@
 export { default as Home } from './Home'
 export { default as Register } from './Register'
 export { default as Login } from './Login'
+export { default as BlogsList } from './BlogsList'
+export { default as BlogDetail } from './BlogDetail'

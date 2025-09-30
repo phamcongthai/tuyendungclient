@@ -6,7 +6,7 @@ export const Footer: React.FC = () => {
     <Layout.Footer className="site-footer">
       <div className="container footer-grid">
         <div>
-          <div className="brand">TopJobs</div>
+          <div className="brand">HiWork</div>
           <p>Tìm kiếm công việc phù hợp và xây dựng sự nghiệp của bạn.</p>
         </div>
         <div>
@@ -28,12 +28,12 @@ export const Footer: React.FC = () => {
         <div>
           <h4>Hỗ trợ</h4>
           <ul>
-            <li>Email: support@topjobs.vn</li>
+            <li>Email: support@hiwork.vn</li>
             <li>Hotline: 0123 456 789</li>
           </ul>
         </div>
       </div>
-      <div className="footer-bottom">© {new Date().getFullYear()} TopJobs</div>
+      <div className="footer-bottom">© {new Date().getFullYear()} HiWork</div>
     </Layout.Footer>
   )
 }
