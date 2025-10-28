@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io } from 'socket.io-client';
 import { notificationsApi, type Notification } from '../apis/notifications.api';
 import { useUser } from './UserContext';
 
@@ -26,7 +26,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  
   const { user } = useUser();
 
   // Initialize socket for client namespace
@@ -55,10 +55,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       setUnreadCount(prev => prev + 1);
     });
 
-    setSocket(s);
     return () => {
       s.close();
-      setSocket(null);
     };
   }, [user?.id]);
 

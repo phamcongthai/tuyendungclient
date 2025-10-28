@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Card, Empty, Layout, List, Select, Space, Tag, Typography, Tooltip, Avatar, Popconfirm, Skeleton } from 'antd';
+import { Button, Card, Layout, List, Select, Space, Tag, Typography, Tooltip, Avatar, Popconfirm, Skeleton } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { applicationsAPI, ApplicationItem, ApplicationStatus } from '../apis/applications.api';
+import { applicationsAPI, type ApplicationItem, type ApplicationStatus } from '../apis/applications.api';
 import { useUser } from '../contexts/UserContext';
 import Header from '../components/Header';
 import Footer from '../components/Footer';

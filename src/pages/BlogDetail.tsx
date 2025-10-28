@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, Typography, Tag, Breadcrumb, Skeleton } from 'antd';
-import { publicBlogsApi, PublicBlog } from '../apis/blogs.api';
+import { publicBlogsApi, type PublicBlog } from '../apis/blogs.api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title } = Typography;
 
 const BlogDetail: React.FC = () => {
   const { slug } = useParams();

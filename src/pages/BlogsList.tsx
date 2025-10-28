@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card, List, Input, Tag, Pagination, Empty, Layout, Row, Col } from 'antd';
+import { Card, List, Input, Tag, Pagination, Empty } from 'antd';
 import { Link } from 'react-router-dom';
-import { publicBlogsApi, PublicBlog } from '../apis/blogs.api';
+import { publicBlogsApi, type PublicBlog } from '../apis/blogs.api';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 

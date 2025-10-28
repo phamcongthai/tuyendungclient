@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io, type Socket } from 'socket.io-client';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -35,7 +35,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       setIsConnected(false);
     });
 
-    newSocket.on('connect_error', (error) => {
+    newSocket.on('connect_error', () => {
       setIsConnected(false);
     });
 
