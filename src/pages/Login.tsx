@@ -47,13 +47,9 @@ const Login: React.FC = () => {
     try {
       const response = await authAPI.login(values);
 
-      console.log('Login API Response:', response); // Debug log
-
       // Backend returns { user: {...} } on success
       // Check if response has user data (successful login)
       if (response && response.user) {
-        console.log('Login - Response user data:', response.user);
-        console.log('Login - isVerified value:', response.user.isVerified);
         
         // Update user context
         login(response.user);
@@ -84,7 +80,6 @@ const Login: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error('Login error:', error); // Debug log
       
       // Show error message with SweetAlert
       let errorMessage = 'Có lỗi xảy ra, vui lòng thử lại';

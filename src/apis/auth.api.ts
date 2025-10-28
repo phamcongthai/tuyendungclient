@@ -34,8 +34,6 @@ export const authAPI = {
   // Đăng ký user thường
   register: async (data: RegisterData): Promise<AuthResponse> => {
     try {
-      console.log(data);
-      
       const response = await http.post(`/auth/register/user`, data);
       return response.data;
     } catch (error: any) {
@@ -80,10 +78,8 @@ export const authAPI = {
       const response = await http.post(`/auth/resend-verification`, { email });
       return response.data;
     } catch (error: any) {
-      if (error.response?.data) {
-        return error.response.data;
-      }
-      throw new Error('Gửi email xác thực thất bại');
+      const message = error?.response?.data?.message || 'Gửi email xác thực thất bại';
+      throw new Error(message);
     }
   }
 };

@@ -55,7 +55,6 @@ const JobDetail: React.FC = () => {
         if (companyIdStr) {
           try {
             const company = await fetchCompanyById(companyIdStr)
-            console.log('Full company data fetched:', company)
             if (mounted) {
               setJob(prev => prev ? ({
                 ...prev,
@@ -74,12 +73,9 @@ const JobDetail: React.FC = () => {
                 companyLocation: company.location,
               } as JobData) : prev)
             }
-          } catch (e) {
-            console.warn('Không lấy được thông tin công ty:', e)
-          }
+          } catch (e) {}
         }
       } catch (e) {
-        console.error(e)
       } finally {
         if (mounted) setLoading(false)
       }

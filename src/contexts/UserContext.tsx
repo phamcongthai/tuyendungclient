@@ -49,10 +49,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       setLoading(true);
       const response = await http.get(`/auth/me`);
       const data = response?.data ?? null;
-      console.log('UserContext - Fetched user data:', data);
       setUser(data);
     } catch (error) {
-      console.error('Failed to fetch user:', error);
       setUser(null);
     } finally {
       setLoading(false);
@@ -71,7 +69,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     try {
       await http.post(`/auth/logout`, {});
     } catch (error) {
-      console.error('Logout error:', error);
     } finally {
       setUser(null);
     }

@@ -14,7 +14,7 @@ import ScrollToTop from './components/ScrollToTop'
 import BackToTopButton from './components/BackToTopButton'
 import './styles.css'
 import 'antd/dist/reset.css'
-import { ConfigProvider, theme } from 'antd'
+import { ConfigProvider, theme, App as AntdApp } from 'antd'
 import { UserProvider } from './contexts/UserContext'
 import { SocketProvider } from './contexts/SocketContext'
 import { NotificationProvider } from './contexts/NotificationContext'
@@ -47,21 +47,23 @@ const App: React.FC = () => {
           }
         }}
       >
-        <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/blog" element={<BlogsList />} />
-          <Route path="/blog/:slug" element={<BlogDetail />} />
-          <Route path="/search" element={<SearchResults />} />
-          <Route path="/jobs/:slug" element={<JobDetail />} />
-          <Route path="/companies/:slug" element={<CompanyDetail />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/profile/cv" element={<CvViewer />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/applications" element={<AppliedJobs />} />
-        </Routes>
-        <BackToTopButton />
+        <AntdApp>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/blog" element={<BlogsList />} />
+            <Route path="/blog/:slug" element={<BlogDetail />} />
+            <Route path="/search" element={<SearchResults />} />
+            <Route path="/jobs/:slug" element={<JobDetail />} />
+            <Route path="/companies/:slug" element={<CompanyDetail />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/cv" element={<CvViewer />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/applications" element={<AppliedJobs />} />
+          </Routes>
+          <BackToTopButton />
+        </AntdApp>
         </ConfigProvider>
           </SettingsProvider>
         </NotificationProvider>

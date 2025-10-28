@@ -39,7 +39,7 @@ const Register: React.FC = () => {
     try {
       const response = await authAPI.register(values);
 
-      console.log('API Response:', response); // Debug log
+      
 
       // Success if message indicates success OR a user/account object exists
       const hasEntity = Boolean((response as any)?.user || (response as any)?.account);
@@ -72,7 +72,6 @@ const Register: React.FC = () => {
         });
       }
     } catch (error: any) {
-      console.error('Registration error:', error); // Debug log
       
       // Show error message with SweetAlert
       let errorMessage = 'Có lỗi xảy ra, vui lòng thử lại';

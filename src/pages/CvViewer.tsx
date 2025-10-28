@@ -31,7 +31,8 @@ const CvViewer: React.FC = () => {
     const load = async () => {
       try {
         const me = await usersAPI.getMe()
-        setCvUrl(me?.cvUrl || null)
+        const url = me?.cvPdfUrl || me?.cvUrl || null
+        setCvUrl(url)
       } catch (e) {
         setCvUrl(null)
       } finally {
@@ -153,7 +154,7 @@ const CvViewer: React.FC = () => {
       const file = new File([blob], 'cv.pdf', { type: 'application/pdf' })
       const { url, downloadUrl } = await applicationsAPI.uploadResume(file)
       const finalUrl = downloadUrl || url
-      await usersAPI.updateMe({ cvUrl: finalUrl })
+      await usersAPI.updateMe({ cvPdfUrl: finalUrl })
       setCvUrl(finalUrl)
       setCvModalOpen(false)
       message.success('Đã cập nhật CV')

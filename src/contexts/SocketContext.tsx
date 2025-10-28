@@ -28,17 +28,14 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     });
 
     newSocket.on('connect', () => {
-      console.log('Connected to notifications socket');
       setIsConnected(true);
     });
 
     newSocket.on('disconnect', () => {
-      console.log('Disconnected from notifications socket');
       setIsConnected(false);
     });
 
     newSocket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
       setIsConnected(false);
     });
 

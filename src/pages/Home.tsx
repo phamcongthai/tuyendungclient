@@ -6,7 +6,7 @@ import HeroSearch from '../components/HeroSearch'
 import CompanyCard from '../components/CompanyCard'
 import CategoryCard from '../components/CategoryCard'
 import { fetchFeaturedCategories } from '../apis/jobs.api'
-import { Layout, Row, Col, Tag, Button, Empty, Card, Modal, Spin } from 'antd'
+import { Layout, Row, Col, Tag, Button, Empty, Card, Modal, Spin, Upload } from 'antd'
 import { FireOutlined, DollarOutlined, PlusOutlined } from '@ant-design/icons'
 import HotJobCardSkeleton from '../components/skeleton/HotJobCardSkeleton'
 import type { Company, JobData } from '../types/models'
@@ -14,6 +14,9 @@ import { fetchJobs } from '../apis/jobs.api' // ✅ import từ api.ts
 import { useUser } from '../contexts/UserContext'
 import GlobalNotice from '../components/GlobalNotice'
 import { fetchActiveCVSamples, fetchCVSampleById, type CVSampleData } from '../apis/cv-samples.api'
+import { uploadAPI } from '../apis/upload.api'
+import { usersAPI } from '../apis/users.api'
+import { App as AntdApp } from 'antd'
 
 type FeaturedCategory = { _id: string; title: string; slug: string; logo?: string; jobCount: number }
 
@@ -35,11 +38,12 @@ const Home: React.FC = () => {
   const [cvPreviewOpen, setCvPreviewOpen] = useState(false)
   const [cvPreviewLoading, setCvPreviewLoading] = useState(false)
   const [cvPreview, setCvPreview] = useState<CVSampleData | null>(null)
+  const [uploadingCv, setUploadingCv] = useState(false)
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
 
-  // Debug log để kiểm tra user data
-  console.log('Home - User data:', user);
-  console.log('Home - isVerified:', user?.isVerified);
-  console.log('Home - Should show banner:', user && user.isVerified !== true);
+  const { message } = AntdApp.useApp()
+
+  
 
   useEffect(() => {
     const getHotJobs = async () => {
@@ -111,7 +115,7 @@ const Home: React.FC = () => {
         const companies = Array.from(companyMap.values()).slice(0, 8)
         setFeaturedCompanies(companies)
       } catch (e) {
-        console.warn('Failed to fetch featured companies from jobs:', e)
+        
         setFeaturedCompanies([])
       } finally {
         setLoadingCompanies(false)
@@ -123,7 +127,7 @@ const Home: React.FC = () => {
         const res = await fetchFeaturedCategories()
         setFeaturedCategories(res.data.slice(0, 6))
       } catch (e) {
-        console.warn('Failed to fetch categories:', e)
+        
         setFeaturedCategories([])
       } finally {
         setLoadingCategories(false)
@@ -159,6 +163,31 @@ const Home: React.FC = () => {
     }
   }
 
+  const handleUploadPdf = async (file: File) => {
+    try {
+      if (!user) {
+        message.warning('Bạn cần đăng nhập để tải CV')
+        navigate('/login')
+        return false as any
+      }
+      if (!file || file.type !== 'application/pdf') {
+        message.error('Vui lòng chọn file PDF')
+        return false as any
+      }
+      setUploadingCv(true)
+      const { url } = await uploadAPI.uploadCvPdf(file)
+      await usersAPI.updateMe({ cvPdfUrl: url })
+      message.success('Đã tải CV lên thành công')
+      setUploadModalOpen(false)
+      return true as any
+    } catch (e: any) {
+      message.error(e?.message || 'Tải CV thất bại')
+      return false as any
+    } finally {
+      setUploadingCv(false)
+    }
+  }
+
   const handleSearch = async (keyword: string, location: string) => {
     const q = new URLSearchParams()
     if (keyword) q.set('q', keyword)
@@ -182,7 +211,6 @@ const Home: React.FC = () => {
         setHasMore(false)
       }
     } catch (error) {
-      console.error('Failed to load more jobs:', error)
     } finally {
       setLoadingMore(false)
     }
@@ -682,9 +710,30 @@ const Home: React.FC = () => {
               <h3>Tải CV của bạn để được gợi ý việc làm phù hợp</h3>
               <p>Hệ thống đề xuất thông minh giúp bạn tiếp cận đúng công việc mơ ước.</p>
             </div>
-            <a className="btn btn-secondary" href="#" onClick={(e) => e.preventDefault()}>Tải CV ngay</a>
+            <a className="btn btn-secondary" href="#" onClick={(e) => { e.preventDefault(); setUploadModalOpen(true) }}>Tải CV ngay</a>
           </div>
         </section>
+
+        <Modal
+          title="Tải CV PDF"
+          open={uploadModalOpen}
+          onCancel={() => setUploadModalOpen(false)}
+          footer={null}
+        >
+          <Upload.Dragger
+            multiple={false}
+            accept="application/pdf"
+            beforeUpload={async (f) => { await handleUploadPdf(f as File); return false as any; }}
+            showUploadList={false}
+            disabled={uploadingCv}
+          >
+            <p className="ant-upload-drag-icon">
+              <span role="img" aria-label="inbox">📄</span>
+            </p>
+            <p className="ant-upload-text">Kéo thả hoặc bấm để chọn file PDF</p>
+            <p className="ant-upload-hint">Chỉ hỗ trợ tệp .pdf, dung lượng phù hợp</p>
+          </Upload.Dragger>
+        </Modal>
       </Layout.Content>
       <Footer />
     </Layout>

@@ -20,9 +20,7 @@ const UserProfileDropdown: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // Debug log để kiểm tra user data
-  console.log('UserProfileDropdown - User data:', user);
-  console.log('UserProfileDropdown - isVerified:', user?.isVerified);
+  
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -117,8 +115,7 @@ const UserProfileDropdown: React.FC = () => {
       icon: <SettingOutlined />,
       label: 'Cài đặt',
       onClick: () => {
-        // TODO: Navigate to settings page
-        console.log('Navigate to settings');
+        navigate('/profile');
       }
     },
     {
@@ -211,7 +208,7 @@ const UserProfileDropdown: React.FC = () => {
 
   return (
     <Dropdown 
-      dropdownRender={() => dropdownOverlay}
+      popupRender={() => dropdownOverlay}
       trigger={['click']}
       placement="bottomRight"
       arrow

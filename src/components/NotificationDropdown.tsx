@@ -122,7 +122,7 @@ const NotificationDropdown: React.FC = () => {
   );
 
   return (
-    <Dropdown dropdownRender={() => content} trigger={["click"]} placement="bottomRight">
+    <Dropdown popupRender={() => content} trigger={["click"]} placement="bottomRight">
       <Badge count={unreadCount} size="small">
         <BellOutlined style={{ fontSize: 20, color: '#0f172a', cursor: 'pointer' }} />
       </Badge>

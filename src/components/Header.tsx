@@ -35,7 +35,7 @@ export const Header: React.FC = () => {
   return (
     <Layout.Header className="site-header" style={{ background: '#ffffff', padding: 0 }}>
       <div className="container header-inner">
-        <div className="brand" onClick={() => navigate('/')}>{settings?.clientSiteName || 'HiWork'}</div>
+        <div className="brand" onClick={() => navigate('/')}>{settings?.clientTitle || 'HiWork'}</div>
         <Menu
           mode="horizontal"
           selectable={false}
