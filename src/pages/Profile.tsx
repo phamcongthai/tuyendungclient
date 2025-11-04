@@ -4,6 +4,7 @@ import { EditOutlined } from '@ant-design/icons'
 import { usersAPI } from '../apis/users.api'
 import { fetchCVSampleById, type CVSampleData } from '../apis/cv-samples.api'
 import { cvBuilderAPI } from '../apis/cv-builder.api'
+import { uploadAPI } from '../apis/upload.api'
 import dayjs from 'dayjs'
 import GrapeJS from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
@@ -710,10 +711,57 @@ const Profile: React.FC = () => {
         return
       }
       
-      // Then download PDF
-      await downloadPdf()
+      // Generate PDF once, then upload to Supabase and also download locally
+      if (!(window as any).html2canvas) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+      }
+      if (!(window as any).jspdf) {
+        await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js')
+      }
+      const html = editor.getHtml()
+      const css = editor.getCss()
+      const wrapper = document.createElement('div')
+      wrapper.style.position = 'fixed'
+      wrapper.style.left = '-99999px'
+      wrapper.style.top = '0'
+      wrapper.style.width = '794px'
+      wrapper.innerHTML = `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`
+      document.body.appendChild(wrapper)
+      const canvas = await (window as any).html2canvas(wrapper, { scale: 1, useCORS: true })
+      document.body.removeChild(wrapper)
+      const imgData = canvas.toDataURL('image/jpeg', 0.8)
+      const { jsPDF } = (window as any).jspdf
+      const pdf = new jsPDF('p', 'pt', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const imgWidth = pageWidth
+      const imgHeight = canvas.height * (imgWidth / canvas.width)
+      let position = 0
+      let heightLeft = imgHeight
+      while (heightLeft > 0) {
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
+        if (heightLeft > 0) {
+          pdf.addPage()
+          position = 0
+        }
+      }
+      const blob = pdf.output('blob') as Blob
+      const file = new File([blob], 'cv.pdf', { type: 'application/pdf' })
+
+      // Upload to server (Supabase) and update user profile
+      const { url } = await uploadAPI.uploadCvPdf(file)
+      await usersAPI.updateMe({ cvPdfUrl: url })
+
+      // Also download locally
+      const objUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objUrl
+      a.download = 'cv.pdf'
+      a.click()
+      URL.revokeObjectURL(objUrl)
       
-      message.success('Đã lưu CV (JSON) và tải PDF về máy')
+      message.success('Đã lưu CV và cập nhật PDF')
     } catch (e: any) {
       message.error(e?.message || 'Lưu CV và tải PDF thất bại')
     } finally {

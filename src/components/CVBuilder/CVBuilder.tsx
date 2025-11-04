@@ -17,6 +17,8 @@ import {
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
 import { type CVSampleData } from '../../apis/cv-samples.api';
+import { uploadAPI } from '../../apis/upload.api';
+import { usersAPI } from '../../apis/users.api';
 
 const { Title} = Typography;
 
@@ -34,6 +36,7 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
   const editorRef = useRef<HTMLDivElement>(null);
   const [editor, setEditor] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!editorRef.current || !template) return;
@@ -220,6 +223,55 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
     return extractedData;
   };
 
+  const loadScript = (src: string) => new Promise<void>((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Failed to load ' + src));
+    document.body.appendChild(s);
+  });
+
+  const exportEditorToPdfBlob = async () => {
+    if (!editor) throw new Error('Editor not ready');
+    if (!(window as any).html2canvas) {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    }
+    if (!(window as any).jspdf) {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    const html = editor.getHtml();
+    const css = editor.getCss();
+    const wrapper = document.createElement('div');
+    wrapper.style.position = 'fixed';
+    wrapper.style.left = '-99999px';
+    wrapper.style.top = '0';
+    wrapper.style.width = '794px';
+    wrapper.innerHTML = `<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}</body></html>`;
+    document.body.appendChild(wrapper);
+    const canvas = await (window as any).html2canvas(wrapper, { scale: 1, useCORS: true });
+    document.body.removeChild(wrapper);
+    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+    const { jsPDF } = (window as any).jspdf;
+    const pdf = new jsPDF('p', 'pt', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = canvas.height * (imgWidth / canvas.width);
+    let position = 0;
+    let heightLeft = imgHeight;
+    while (heightLeft > 0) {
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      if (heightLeft > 0) {
+        pdf.addPage();
+        position = 0;
+      }
+    }
+    const blob = pdf.output('blob') as Blob;
+    return blob;
+  };
+
   const handleSave = () => {
     if (!editor) {
       message.error('Trình chỉnh sửa chưa sẵn sàng');
@@ -227,15 +279,35 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
     }
     
     setSaving(true);
-    try {
-      editor.runCommand('save-cv');
-      message.success('CV đã được lưu thành công!');
-    } catch (error) {
-      console.error('Error saving CV:', error);
-      message.error('Lỗi khi lưu CV');
-    } finally {
-      setSaving(false);
-    }
+    (async () => {
+      try {
+        // Save JSON to server via parent callback
+        await Promise.resolve(editor.runCommand('save-cv'));
+
+        // Export to PDF, upload to Supabase, update user profile
+        setUploading(true);
+        const pdfBlob = await exportEditorToPdfBlob();
+        const file = new File([pdfBlob], 'cv.pdf', { type: 'application/pdf' });
+        const { url } = await uploadAPI.uploadCvPdf(file);
+        await usersAPI.updateMe({ cvPdfUrl: url });
+
+        // Also trigger a local download for user convenience
+        const objUrl = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = objUrl;
+        a.download = 'cv.pdf';
+        a.click();
+        URL.revokeObjectURL(objUrl);
+
+        message.success('Đã lưu CV và cập nhật PDF thành công');
+      } catch (error) {
+        console.error('Error saving/uploading CV:', error);
+        message.error('Lỗi khi lưu hoặc cập nhật PDF CV');
+      } finally {
+        setUploading(false);
+        setSaving(false);
+      }
+    })();
   };
 
   const handlePreview = () => {
@@ -338,7 +410,7 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
                 type="primary"
                 icon={<SaveOutlined />}
                 onClick={handleSave}
-                loading={saving}
+                loading={saving || uploading}
               >
                 Lưu CV
               </Button>

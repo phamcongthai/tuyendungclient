@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import GrapeJS from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
 import { applicationsAPI } from '../apis/applications.api'
+import { uploadAPI } from '../apis/upload.api'
 import { Document, Page, pdfjs } from 'react-pdf'
 // Use Vite-compatible worker import to avoid dynamic import issues
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -152,10 +153,9 @@ const CvViewer: React.FC = () => {
       }
       const blob = pdf.output('blob') as Blob
       const file = new File([blob], 'cv.pdf', { type: 'application/pdf' })
-      const { url, downloadUrl } = await applicationsAPI.uploadResume(file)
-      const finalUrl = downloadUrl || url
-      await usersAPI.updateMe({ cvPdfUrl: finalUrl })
-      setCvUrl(finalUrl)
+      const { url } = await uploadAPI.uploadCvPdf(file)
+      await usersAPI.updateMe({ cvPdfUrl: url })
+      setCvUrl(url)
       setCvModalOpen(false)
       message.success('Đã cập nhật CV')
     } catch (e: any) {
