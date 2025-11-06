@@ -1,5 +1,6 @@
 import React from 'react'
 import { Layout } from 'antd'
+import { Link } from 'react-router-dom'
 
 export const Footer: React.FC = () => {
   return (
@@ -12,7 +13,7 @@ export const Footer: React.FC = () => {
         <div>
           <h4>Về chúng tôi</h4>
           <ul>
-            <li><a href="#" onClick={(e) => e.preventDefault()}>Giới thiệu</a></li>
+            <li><Link to="/blog/gioi-thieu-ve-cong-ty">Giới thiệu</Link></li>
             <li><a href="#" onClick={(e) => e.preventDefault()}>Tuyển dụng</a></li>
             <li><a href="#" onClick={(e) => e.preventDefault()}>Liên hệ</a></li>
           </ul>

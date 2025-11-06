@@ -15,12 +15,12 @@ export type JobData = {
   slug: string;
   description?: string;
   requirements?: string;
+  isSalaryNegotiable?: boolean;
   benefits?: string;
   quantity?: number;
   salaryMin?: number;
   salaryMax?: number;
   salaryType?: string;
-  salaryNegotiable?: boolean;
   career?: string;
   categoryId?: string; 
   level?: string;

@@ -6,7 +6,6 @@ import { usersAPI } from '../apis/users.api'
 import { useNavigate } from 'react-router-dom'
 import GrapeJS from 'grapesjs'
 import 'grapesjs/dist/css/grapes.min.css'
-import { applicationsAPI } from '../apis/applications.api'
 import { uploadAPI } from '../apis/upload.api'
 import { Document, Page, pdfjs } from 'react-pdf'
 // Use Vite-compatible worker import to avoid dynamic import issues

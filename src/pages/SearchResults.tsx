@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Layout, Card, Tag, Space, Input, Select, Slider, Button, Empty, Row, Col, Checkbox, Radio } from 'antd'
+import provincesData from 'provinces'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import HeroSearch from '../components/HeroSearch'
@@ -39,6 +40,30 @@ const SearchResults: React.FC = () => {
     status: 'active' as const,
   }), [keyword, location, categories, jobType, level, experience, salary])
 
+  // Build VN province options from 'provinces'
+  const toAscii = (s: string) => s
+    .normalize('NFD')
+    .replace(/\p{Diacritic}+/gu, '')
+    .replace(/đ/gi, 'd')
+    .toLowerCase()
+
+  const vnOptions = useMemo(() => {
+    const list: any[] = Array.isArray((provincesData as any)) ? (provincesData as any) : []
+    let vn = list.filter((p: any) => {
+      const country = String(p?.country || p?.country_code || p?.countryCode || '')
+      return /^VN|VNM$/i.test(country)
+    })
+    if (vn.length === 0) {
+      vn = [
+        { name: 'Hà Nội' }, { name: 'Hồ Chí Minh' }, { name: 'Đà Nẵng' }, { name: 'Hải Phòng' }, { name: 'Cần Thơ' },
+        { name: 'Bắc Ninh' }, { name: 'Quảng Ninh' }, { name: 'Thanh Hóa' }, { name: 'Nghệ An' }, { name: 'Khánh Hòa' }
+      ]
+    }
+    return vn.map((p: any) => ({ value: p.name, label: p.name }))
+  }, [])
+
+  // NOTE: Prefer server-side regex search to avoid double-filtering. Render server results directly.
+
   useEffect(() => {
     const run = async () => {
       setLoading(true)
@@ -64,13 +89,20 @@ const SearchResults: React.FC = () => {
     navigate(`/search?${q.toString()}`)
   }
 
-  const handleTopSearch = (kw: string, loc: string) => {
+  const handleTopSearch = (kw: string, loc: string, cat?: string) => {
     setKeyword(kw)
     setLocation(loc)
+    if (cat !== undefined) {
+      setCategories(cat ? [cat] : [])
+    }
     const q = new URLSearchParams()
     if (kw) q.set('q', kw)
     if (loc) q.set('loc', loc)
-    if (categories.length) q.set('cat', categories.join(','))
+    if (cat) {
+      q.set('cat', cat)
+    } else if (categories.length) {
+      q.set('cat', categories.join(','))
+    }
     if (jobType) q.set('type', jobType)
     if (level) q.set('lv', level)
     if (experience) q.set('exp', experience)
@@ -92,7 +124,18 @@ const SearchResults: React.FC = () => {
               <Card style={{ borderRadius: 12 }}>
                 <Space direction="vertical" size={12} style={{ width: '100%' }}>
                   <Input placeholder="Từ khóa (tên job, công ty, ngành)" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
-                  <Input placeholder="Địa điểm" value={location} onChange={(e) => setLocation(e.target.value)} />
+                  <Select
+                    showSearch
+                    allowClear
+                    placeholder="Địa điểm"
+                    options={vnOptions}
+                    value={location || undefined}
+                    filterOption={(input, option) => {
+                      const src = toAscii(option?.label?.toString() || '')
+                      return src.includes(toAscii(input))
+                    }}
+                    onChange={(v) => setLocation(v || '')}
+                  />
                   <div>
                     <div style={{ fontWeight: 700, marginBottom: 8 }}>Theo danh mục nghề</div>
                     <Checkbox.Group
@@ -166,14 +209,21 @@ const SearchResults: React.FC = () => {
                   {!loading && jobs.length === 0 ? (
                     <Empty description="Không có kết quả phù hợp" />
                   ) : (
-                    jobs.map((job) => (
+                    jobs.map((job) => {
+                      const companyObj: any = (job as any).company || (job as any).companyId;
+                      const logo: string | undefined = (job as any).companyLogo || companyObj?.logo;
+                      return (
                       <div key={job._id} style={{ background: '#fff', border: '1px solid #f0f0f0', borderRadius: 12, padding: 12, display: 'flex', gap: 12 }}>
-                        <div style={{ width: 56, height: 56, borderRadius: 12, background: '#d1fae5', display: 'grid', placeItems: 'center', fontWeight: 800, color: '#00b14f' }}>
-                          {job.title?.charAt(0) || 'J'}
+                        <div style={{ width: 56, height: 56, borderRadius: 12, background: '#d1fae5', display: 'grid', placeItems: 'center', fontWeight: 800, color: '#00b14f', overflow: 'hidden' }}>
+                          {logo ? (
+                            <img src={logo} alt={companyObj?.name || 'logo'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <span>{(companyObj?.name || job.title || 'J').charAt(0)}</span>
+                          )}
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700 }}>{job.title}</div>
-                          <div style={{ color: '#0f766e', fontSize: 12 }}>{job.location || '—'}</div>
+                          <div style={{ color: '#0f766e', fontSize: 12 }}>{job.location || companyObj?.address || '—'}</div>
                           <Space wrap size={4} style={{ marginTop: 6 }}>
                             {job.jobType && <Tag>{job.jobType}</Tag>}
                             {job.level && <Tag color="orange">{job.level}</Tag>}
@@ -183,8 +233,8 @@ const SearchResults: React.FC = () => {
                         <div>
                           <Button type="link" onClick={() => navigate(`/jobs/${job.slug}`)}>Xem</Button>
                         </div>
-                      </div>
-                    ))
+                      </div>)
+                    })
                   )}
                 </Space>
               </Card>

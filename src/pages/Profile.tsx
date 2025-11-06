@@ -28,6 +28,7 @@ const Profile: React.FC = () => {
   const [cvUploading, setCvUploading] = useState(false)
   const [templateModalOpen, setTemplateModalOpen] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<CVSampleData | null>(null)
+  const [isEditingExisting, setIsEditingExisting] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement | null>(null)
 
   const load = async () => {
@@ -53,6 +54,11 @@ const Profile: React.FC = () => {
     if (!cvModalOpen || initRef.current) return
     
     try {
+      console.log('[ProfileCV] Open builder modal, selectedTemplate', {
+        id: selectedTemplate?._id,
+        hasHtml: !!selectedTemplate?.html,
+        hasCss: !!selectedTemplate?.css,
+      })
       const ed = GrapeJS.init({
         container: '#gjs-modal',
         height: '700px',
@@ -80,35 +86,7 @@ const Profile: React.FC = () => {
       },
     })
 
-    // Base styles for CV layout (only if no template selected)
-    if (!selectedTemplate) {
-      ed.setStyle(`
-        /* Blue-themed resume template with left sidebar */
-        .cv-container { font-family: Inter, system-ui, Arial, sans-serif; color: #111827; background: #ffffff; }
-        .cv-wrapper { display: grid; grid-template-columns: 280px 1fr; min-height: 1000px; }
-        .cv-sidebar { background: #1f4e79; color: #ffffff; padding: 24px; }
-        .cv-sidebar .cv-avatar { width: 120px; height: 120px; border-radius: 50%; background: #e5e7eb; border: 4px solid #ffffff; margin: 0 auto 12px; }
-        .cv-name { font-size: 20px; font-weight: 700; color: #ffffff; text-transform: uppercase; }
-        .cv-subtitle { color: #dbeafe; font-size: 12px; }
-        .cv-info { list-style: none; padding: 0; margin: 12px 0; }
-        .cv-info li { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 12px; color: #e5e7eb; }
-        .cv-sidebar-section { margin: 16px 0; }
-        .cv-sidebar-title { font-weight: 700; text-transform: uppercase; color: #ffffff; margin-bottom: 8px; }
-        .cv-skill { margin: 8px 0; }
-        .cv-skill-name { font-size: 12px; color: #ffffff; margin-bottom: 4px; }
-        .cv-skill-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.35); border-radius: 999px; overflow: hidden; }
-        .cv-skill-fill { height: 100%; background: #4ade80; }
-        .cv-main { padding: 24px; background: #ffffff; }
-        .cv-section { margin-bottom: 18px; }
-        .cv-section-head { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #e5e7eb; margin-bottom: 10px; }
-        .cv-section-icon { width: 28px; height: 28px; border-radius: 999px; background: #1f4e79; color: #ffffff; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; }
-        .cv-section-title { font-size: 16px; font-weight: 700; color: #1f4e79; }
-        .cv-item { margin: 8px 0; }
-        .cv-item-header { display: flex; justify-content: space-between; font-weight: 600; }
-        .cv-muted { color: #6B7280; font-size: 12px; }
-        .cv-list { padding-left: 16px; margin: 6px 0; }
-      `)
-    }
+    // Require selected template; no base fallback styles
 
     const bm = ed.BlockManager
     const cat = 'CV Components'
@@ -264,15 +242,41 @@ const Profile: React.FC = () => {
     // Load template with a small delay to ensure editor is ready
     const loadTemplate = async () => {
       try {
-        
+        console.log('[ProfileCV] Loading template into editor', { id: selectedTemplate._id })
+        // Ensure we have full template detail
+        let html = selectedTemplate.html
+        let css = selectedTemplate.css
+        if (!html) {
+          try {
+            const full = await fetchCVSampleById(selectedTemplate._id)
+            html = full?.html || ''
+            css = full?.css || css
+            console.log('[ProfileCV] Fetched full template by id', { id: selectedTemplate._id, htmlLength: html.length, cssLength: css?.length || 0 })
+          } catch {}
+        }
+
+        // If full document, extract body content
+        if (html && /<html[\s\S]*<\/html>/i.test(html)) {
+          try {
+            const parser = new DOMParser()
+            const doc = parser.parseFromString(html, 'text/html')
+            html = doc.body?.innerHTML || html
+          } catch {}
+        }
+
         // Clear existing content first
         editor.setComponents('')
         editor.setStyle('')
-        
-        // Load template content
-        editor.setComponents(selectedTemplate.html)
-        editor.setStyle(selectedTemplate.css)
-        
+
+        if (html) {
+          editor.setComponents(html)
+          console.log('[ProfileCV] setComponents applied', { id: selectedTemplate._id, htmlLength: html.length })
+        }
+        if (css) {
+          editor.setStyle(css)
+          console.log('[ProfileCV] setStyle applied', { id: selectedTemplate._id, cssLength: css.length })
+        }
+
         // Auto-fill avatar from user profile
         const doc = getEditorDocument()
         if (doc) {
@@ -361,16 +365,7 @@ const Profile: React.FC = () => {
         if ((profile as any)?.cvId && (profile as any)?.cvFields) {
           await loadTemplateForViewer((profile as any).cvId, (profile as any).cvFields)
         }
-        // Fallback to old cvData structure
-        else {
-          const raw = (profile as any)?.cvData
-          if (!raw) return
-          try {
-            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-            if (parsed?.html) viewerRef.current.setComponents(parsed.html)
-            if (parsed?.css) viewerRef.current.setStyle(parsed.css)
-          } catch {}
-        }
+        // No legacy fallback
       } catch (error) {
         console.error('Error loading CV for viewer:', error)
       }
@@ -422,9 +417,10 @@ const Profile: React.FC = () => {
     }
   }
 
-  // Prefill editor from saved CV data when modal and editor are ready
+  // Prefill editor from saved CV data when modal and editor are ready (only in edit-existing mode)
   useEffect(() => {
     if (!cvModalOpen || !editor || !selectedTemplate) return
+    if (!isEditingExisting) return
     
     // Add a small delay to ensure editor is fully ready
     const loadEditorData = async () => {
@@ -433,17 +429,7 @@ const Profile: React.FC = () => {
         if ((profile as any)?.cvId && (profile as any)?.cvFields) {
           await loadTemplateAndApplyData((profile as any).cvId, (profile as any).cvFields)
         } 
-        // Fallback to old cvData structure
-        else {
-          const raw = (profile as any)?.cvData
-          if (!raw) return
-          try {
-            const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
-            if (parsed.fields) {
-              applyCvJsonToEditor(parsed.fields)
-            }
-          } catch {}
-        }
+        // No legacy fallback
       } catch (error) {
         console.error('Error loading CV for editor:', error)
       }
@@ -451,7 +437,7 @@ const Profile: React.FC = () => {
     
     const timeoutId = setTimeout(loadEditorData, 300)
     return () => clearTimeout(timeoutId)
-  }, [cvModalOpen, editor, selectedTemplate, profile])
+  }, [cvModalOpen, editor, selectedTemplate, profile, isEditingExisting])
 
   const loadTemplateAndApplyData = async (cvId: any, cvFields: Record<string, string>) => {
     try {
@@ -547,7 +533,9 @@ const Profile: React.FC = () => {
 
   const handleSelectTemplate = async (template: CVSampleData) => {
     try {
+      console.log('[ProfileCV] Template selected from modal', { id: template._id, hasHtml: !!template.html, hasCss: !!template.css })
       setSelectedTemplate(template)
+      setIsEditingExisting(false)
       setCvModalOpen(true)
       message.success(`Đã chọn mẫu CV: ${template.name}`)
     } catch (error) {
@@ -562,6 +550,7 @@ const Profile: React.FC = () => {
         message.error('Không tìm thấy CV để chỉnh sửa')
         return
       }
+      setIsEditingExisting(true)
       
       // Load template from cvId
       const id = typeof (profile as any).cvId === 'string' 
@@ -992,83 +981,7 @@ const Profile: React.FC = () => {
             }}
             width={1000}
             footer={[
-              <Button key="template" onClick={() => {
-                if (!editor) return
-                const name = 'Họ và tên'
-                const pos = form.getFieldValue('desiredPosition') || 'Vị trí mong muốn'
-                const skills = (form.getFieldValue('skills') || '').split(',').map((s: string) => s.trim()).filter(Boolean)
-                const skillsBarsHtml = skills.length 
-                  ? skills.map((s: string) => `<div class=\"cv-skill\"><div class=\"cv-skill-name\">${s}</div><div class=\"cv-skill-bar\"><div class=\"cv-skill-fill\" style=\"width:80%\"></div></div></div>`).join('') 
-                  : '<div class=\"cv-skill\"><div class=\"cv-skill-name\">Tin học văn phòng</div><div class=\"cv-skill-bar\"><div class=\"cv-skill-fill\" style=\"width:80%\"></div></div></div>'
-                editor.setComponents(`
-                  <div class=\"cv-container\">\
-                    <div class=\"cv-wrapper\">\
-                      <aside class=\"cv-sidebar\">\
-                        <div class=\"cv-avatar\"></div>\
-                        <div style=\"text-align:center;margin-bottom:12px\">\
-                          <div class=\"cv-name\" data-field=\"fullName\">${name}</div>\
-                          <div class=\"cv-subtitle\" data-field=\"desiredPosition\">${pos}</div>\
-                        </div>\
-                        <div class=\"cv-sidebar-section\">\
-                          <div class=\"cv-sidebar-title\">Kỹ năng</div>\
-                          ${skillsBarsHtml}\
-                        </div>\
-                        <div class=\"cv-sidebar-section\">\
-                          <div class=\"cv-sidebar-title\">Liên hệ</div>\
-                          <ul class=\"cv-info\">\
-                            <li><span>Email:</span> <span data-field=\"email\">your@email.com</span></li>\
-                            <li><span>Điện thoại:</span> <span data-field=\"phone\">0123 456 789</span></li>\
-                            <li><span>LinkedIn:</span> <span data-field=\"linkedin\">linkedin.com/in/username</span></li>\
-                          </ul>\
-                        </div>\
-                        <div class=\"cv-sidebar-section\">\
-                          <div class=\"cv-sidebar-title\">Mục tiêu nghề nghiệp</div>\
-                          <div class=\"cv-subtitle\" data-field=\"objective\">Áp dụng kiến thức và kỹ năng để trở thành nhân viên xuất sắc, đóng góp vào sự phát triển của công ty.</div>\
-                        </div>\
-                        <div class=\"cv-sidebar-section\">\
-                          <div class=\"cv-sidebar-title\">Sở thích</div>\
-                          <ul class=\"cv-info\"><li>Đọc sách</li><li>Thể thao</li></ul>\
-                        </div>\
-                      </aside>\
-                      <main class=\"cv-main\">\
-                        <section class=\"cv-section\">\
-                          <div class=\"cv-section-head\"><span class=\"cv-section-icon\">🧾</span><span class=\"cv-section-title\">Giới thiệu</span></div>\
-                          <p class=\"cv-subtitle\" data-field=\"summary\">Mô tả ngắn gọn về kinh nghiệm, thế mạnh nổi bật và mục tiêu nghề nghiệp.</p>\
-                        </section>\
-                        <section class=\"cv-section\">\
-                          <div class=\"cv-section-head\"><span class=\"cv-section-icon\">🎓</span><span class=\"cv-section-title\">Học vấn</span></div>\
-                          <div class=\"cv-item\">\
-                            <div class=\"cv-item-header\"><span>Đại học TOPCV</span><span class=\"cv-muted\">10/2010 - 05/2014</span></div>\
-                            <div class=\"cv-subtitle\">Chuyên ngành: Quản trị Doanh nghiệp</div>\
-                            <div class=\"cv-muted\">Tốt nghiệp loại Giỏi, điểm trung bình 8.0</div>\
-                          </div>\
-                        </section>\
-                        <section class=\"cv-section\">\
-                          <div class=\"cv-section-head\"><span class=\"cv-section-icon\">💼</span><span class=\"cv-section-title\">Kinh nghiệm làm việc</span></div>\
-                          <div class=\"cv-item\">\
-                            <div class=\"cv-item-header\"><span>CÔNG TY TOPCV</span><span class=\"cv-muted\">03/2015 - Hiện tại</span></div>\
-                            <div class=\"cv-subtitle\">Nhân viên bán hàng</div>\
-                            <ul class=\"cv-list\">\
-                              <li>Hỗ trợ viết bài quảng cáo sản phẩm</li>\
-                              <li>Giới thiệu, tư vấn sản phẩm, giải đáp thắc mắc khách hàng</li>\
-                              <li>Theo dõi tình hình hóa đơn, chăm sóc khách hàng</li>\
-                            </ul>\
-                          </div>\
-                          <div class=\"cv-item\">\
-                            <div class=\"cv-item-header\"><span>CỬA HÀNG TOPCV</span><span class=\"cv-muted\">06/2014 - 02/2015</span></div>\
-                            <div class=\"cv-subtitle\">Nhân viên bán hàng</div>\
-                            <ul class=\"cv-list\">\
-                              <li>Bán hàng trực tiếp tại cửa hàng cho người nước ngoài và người Việt</li>\
-                              <li>Quảng bá sản phẩm thông qua các ấn phẩm truyền thông</li>\
-                              <li>Lập báo cáo số lượng bán ra hằng ngày</li>\
-                            </ul>\
-                          </div>\
-                        </section>\
-                      </main>\
-                    </div>\
-                  </div>
-                `)
-              }}>Chèn mẫu</Button>,
+              
               <Button key="save" onClick={saveCvData}>Lưu CV</Button>,
               <Button key="saveAndDownload" type="primary" loading={cvUploading} onClick={saveCvAndDownloadPdf}>Lưu CV & Tải PDF</Button>,
               <Button key="download" onClick={downloadPdf}>Tải PDF</Button>,
@@ -1089,7 +1002,7 @@ const Profile: React.FC = () => {
               <Button key="close" onClick={() => setCvViewOpen(false)}>Đóng</Button>,
             ]}
           >
-            {((profile as any)?.cvData || (profile as any)?.cvId) ? (
+            {(profile as any)?.cvId ? (
               <div id="gjs-view" style={{ border: '1px solid #e5e7eb', borderRadius: 8, height: 700, minHeight: 700 }} />
             ) : (
               <div style={{ padding: 16 }}>Chưa có CV. Hãy tạo CV trước.</div>

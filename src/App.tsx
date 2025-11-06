@@ -9,6 +9,7 @@ import JobDetail from './pages/JobDetail'
 import CompanyDetail from './pages/CompanyDetail'
 import Profile from './pages/Profile'
 import CvViewer from './pages/CvViewer'
+import CVBuilderPage from './pages/CVBuilder/CVBuilderPage'
 import SearchResults from './pages/SearchResults'
 import ScrollToTop from './components/ScrollToTop'
 import BackToTopButton from './components/BackToTopButton'
@@ -20,6 +21,7 @@ import { SocketProvider } from './contexts/SocketContext'
 import { NotificationProvider } from './contexts/NotificationContext'
 import AppliedJobs from './pages/AppliedJobs'
 import { SettingsProvider } from './contexts/SettingsContext'
+import ActiveBanners from './pages/ActiveBanners'
 
 const App: React.FC = () => {
   return (
@@ -58,9 +60,11 @@ const App: React.FC = () => {
             <Route path="/companies/:slug" element={<CompanyDetail />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profile/cv" element={<CvViewer />} />
+            <Route path="/cv-builder" element={<CVBuilderPage />} />
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="/applications" element={<AppliedJobs />} />
+            <Route path="/banners" element={<ActiveBanners />} />
           </Routes>
           <BackToTopButton />
         </AntdApp>

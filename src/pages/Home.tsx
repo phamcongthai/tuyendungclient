@@ -17,6 +17,8 @@ import { fetchActiveCVSamples, fetchCVSampleById, type CVSampleData } from '../a
 import { uploadAPI } from '../apis/upload.api'
 import { usersAPI } from '../apis/users.api'
 import { App as AntdApp } from 'antd'
+import SingleBannerCarousel from '../components/SingleBannerCarousel'
+import StatsCounters from '../components/StatsCounters'
 
 type FeaturedCategory = { _id: string; title: string; slug: string; logo?: string; jobCount: number }
 
@@ -30,7 +32,7 @@ const Home: React.FC = () => {
   const [displayedJobs, setDisplayedJobs] = useState<JobData[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const [totalJobs, setTotalJobs] = useState(0)
+  const [, setTotalJobs] = useState(0)
   const [featuredCategories, setFeaturedCategories] = useState<FeaturedCategory[]>([])
   const { user } = useUser()
   const [cvSamples, setCvSamples] = useState<CVSampleData[]>([])
@@ -125,7 +127,8 @@ const Home: React.FC = () => {
       setLoadingCategories(true)
       try {
         const res = await fetchFeaturedCategories()
-        setFeaturedCategories(res.data.slice(0, 6))
+        const onlyHasJobs = res.data.filter((c) => (c as any).jobCount > 0)
+        setFeaturedCategories(onlyHasJobs.slice(0, 6))
       } catch (e) {
         
         setFeaturedCategories([])
@@ -188,10 +191,11 @@ const Home: React.FC = () => {
     }
   }
 
-  const handleSearch = async (keyword: string, location: string) => {
+  const handleSearch = async (keyword: string, location: string, category?: string) => {
     const q = new URLSearchParams()
     if (keyword) q.set('q', keyword)
     if (location) q.set('loc', location)
+    if (category) q.set('cat', category)
     navigate(`/search?${q.toString()}`)
   }
 
@@ -217,7 +221,7 @@ const Home: React.FC = () => {
   }
 
   const formatSalary = (job: JobData) => {
-    if (job.salaryNegotiable) return "Thỏa thuận";
+    if (job.isSalaryNegotiable === true) return "Thỏa thuận";
     if (job.salaryMin && job.salaryMax) {
       return `${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()} ${job.salaryType || "VNĐ"}`;
     }
@@ -278,9 +282,11 @@ const Home: React.FC = () => {
         
         <HeroSearch onSearch={handleSearch} />
 
+        
+
         {/* Hot Jobs Section - Improved Design */}
         <section className="section hot-jobs-section" id="jobs" style={{ 
-          background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+          background: 'transparent',
           padding: '60px 0',
           position: 'relative'
         }}>
@@ -289,7 +295,7 @@ const Home: React.FC = () => {
             <div className="section-head" style={{ 
               textAlign: 'center', 
               marginBottom: '40px',
-              color: 'white'
+              color: '#0f172a'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
                 <FireOutlined style={{ fontSize: '32px', color: '#ff6b35' }} />
@@ -297,10 +303,8 @@ const Home: React.FC = () => {
                   fontSize: '36px', 
                   fontWeight: '700', 
                   margin: 0,
-                  background: 'linear-gradient(45deg, #fff, #f0f0f0)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  color: '#00B14F',
+                  textShadow: 'none'
                 }}>
                   Việc làm hot
                 </h2>
@@ -309,7 +313,8 @@ const Home: React.FC = () => {
                 fontSize: '18px', 
                 opacity: 0.9, 
                 margin: 0,
-                fontWeight: '300'
+                fontWeight: '300',
+                color: '#334155'
               }}>
                 Những cơ hội việc làm hấp dẫn nhất đang chờ bạn
               </p>
@@ -547,7 +552,7 @@ const Home: React.FC = () => {
                   style={{
                     background: 'rgba(255,255,255,0.2)',
                     border: '2px solid rgba(255,255,255,0.3)',
-                    color: 'white',
+                    color: '#00B14F',
                     borderRadius: '12px',
                     padding: '12px 32px',
                     fontSize: '16px',
@@ -570,33 +575,7 @@ const Home: React.FC = () => {
               </div>
             )}
 
-            {/* View All Button */}
-            <div style={{ textAlign: 'center', marginTop: '30px' }}>
-              <Button 
-                size="large"
-                style={{
-                  background: 'rgba(255,255,255,0.15)',
-                  border: '2px solid rgba(255,255,255,0.25)',
-                  color: 'white',
-                  borderRadius: '12px',
-                  padding: '12px 32px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  backdropFilter: 'blur(10px)',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.25)';
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.15)';
-                  e.currentTarget.style.borderColor = 'rgba(255,255,255,0.25)';
-                }}
-              >
-                Xem tất cả việc làm ({totalJobs})
-              </Button>
-            </div>
+            {/* View All Button removed per request; keep only Load More */}
           </div>
         </section>
 
@@ -642,6 +621,13 @@ const Home: React.FC = () => {
           </div>
         </section>
 
+        {/* Banner below featured companies */}
+        <section className="section" style={{ padding: '20px 0', background: '#F3F5F7' }}>
+          <div className="container">
+            <SingleBannerCarousel position="BELOW_FEATURED_COMPANIES" />
+          </div>
+        </section>
+
         {/* CV Samples Section */}
         <section className="section" id="cv">
           <div className="container">
@@ -677,6 +663,9 @@ const Home: React.FC = () => {
             </Row>
           </div>
         </section>
+
+        {/* Stats Counters */}
+        <StatsCounters />
 
         <Modal
           open={cvPreviewOpen}

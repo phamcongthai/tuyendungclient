@@ -10,13 +10,12 @@ import {
 } from 'antd';
 import {
   SaveOutlined,
-  EyeOutlined,
   ArrowLeftOutlined,
   DownloadOutlined,
 } from '@ant-design/icons';
 import grapesjs from 'grapesjs';
 import 'grapesjs/dist/css/grapes.min.css';
-import { type CVSampleData } from '../../apis/cv-samples.api';
+import { type CVSampleData, fetchCVSampleById } from '../../apis/cv-samples.api';
 import { uploadAPI } from '../../apis/upload.api';
 import { usersAPI } from '../../apis/users.api';
 
@@ -24,12 +23,16 @@ const { Title} = Typography;
 
 interface CVBuilderProps {
   template: CVSampleData;
+  existingCvData?: any;
+  isEditMode?: boolean;
   onBack: () => void;
   onSave: (cvData: { cvId: string; cvFields: any }) => void;
 }
 
 const CVBuilder: React.FC<CVBuilderProps> = ({
   template,
+  existingCvData,
+  isEditMode = false,
   onBack,
   onSave,
 }) => {
@@ -42,11 +45,17 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
     if (!editorRef.current || !template) return;
 
     try {
+      console.log('[CVBuilder] Initializing editor with template', {
+        templateId: template._id,
+        hasHtml: !!template.html,
+        hasCss: !!template.css,
+      });
       // Initialize GrapesJS editor
       const editorInstance = grapesjs.init({
         container: editorRef.current,
         height: '100vh',
         width: '100%',
+        fromElement: false,
         storageManager: false,
         plugins: [],
         pluginsOpts: {},
@@ -136,28 +145,97 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
         return;
       }
 
-      // Load template HTML and CSS with null checks
-      if (template.html) {
-        editorInstance.setComponents(template.html);
-      }
-      if (template.css) {
-        editorInstance.setStyle(template.css);
-      }
+      const loadTemplateIntoEditor = async () => {
+        try {
+          // Clear any previous/default content
+          try {
+            editorInstance.setComponents('');
+            editorInstance.setStyle('');
+          } catch {}
 
-      // Add custom commands for CV fields
-      editorInstance.Commands.add('save-cv', {
-        run: (editor: any) => {
-          const html = editor.getHtml();
-          
-          // Extract form data from the editor
-          const cvFields = extractCVFields(html);
-          
-          onSave({
-            cvId: template._id,
-            cvFields: cvFields,
-          });
-        },
+          // Ensure we have full template content
+          let htmlContent = template.html || '';
+          let cssContent = template.css || '';
+
+          if (!htmlContent) {
+            try {
+              const full = await fetchCVSampleById(template._id);
+              htmlContent = full?.html || '';
+              cssContent = full?.css || cssContent;
+              console.log('[CVBuilder] Fetched full template by id', {
+                templateId: template._id,
+                htmlLength: htmlContent.length,
+                cssLength: cssContent?.length || 0,
+              });
+            } catch (e) {
+              // Fallback: leave empty if cannot fetch
+              console.error('[CVBuilder] Failed to fetch full template by id', e);
+            }
+          }
+
+          // Sanitize: if full document provided, extract body innerHTML
+          if (htmlContent && /<html[\s\S]*<\/html>/i.test(htmlContent)) {
+            try {
+              const parser = new DOMParser();
+              const doc = parser.parseFromString(htmlContent, 'text/html');
+              htmlContent = doc.body?.innerHTML || htmlContent;
+              console.log('[CVBuilder] Sanitized full HTML document to body.innerHTML', {
+                templateId: template._id,
+                sanitizedHtmlLength: htmlContent.length,
+              });
+            } catch {}
+          }
+
+          // If editing existing CV, populate template with saved data
+          if (isEditMode && existingCvData && existingCvData.cvFields) {
+            htmlContent = populateTemplateWithData(htmlContent, existingCvData.cvFields);
+          }
+
+          // Small delay to ensure canvas is fully ready
+          await new Promise((r) => setTimeout(r, 50));
+
+          if (htmlContent) {
+            editorInstance.setComponents(htmlContent);
+            console.log('[CVBuilder] setComponents applied', {
+              templateId: template._id,
+              appliedHtmlLength: htmlContent.length,
+            });
+          } else {
+            console.warn('Template HTML is empty');
+          }
+          if (cssContent) {
+            editorInstance.setStyle(cssContent);
+            console.log('[CVBuilder] setStyle applied', {
+              templateId: template._id,
+              appliedCssLength: cssContent.length,
+            });
+          }
+          try {
+            const currentHtml = editorInstance.getHtml();
+            console.log('[CVBuilder] Editor HTML length after apply', currentHtml?.length || 0);
+          } catch {}
+        } catch (e) {
+          console.error('Error loading template into editor:', e);
+          message.error('Không thể tải mẫu CV vào editor');
+        }
+      };
+
+      // Load when editor is ready
+      let loadedOnce = false;
+      editorInstance.on('load', () => {
+        if (loadedOnce) return;
+        loadedOnce = true;
+        console.log('[CVBuilder] Editor load event fired');
+        loadTemplateIntoEditor();
       });
+      // Safety: fallback load after short delay
+      setTimeout(() => {
+        if (!loadedOnce) {
+          console.log('[CVBuilder] Fallback load after timeout');
+          loadedOnce = true;
+          loadTemplateIntoEditor();
+        }
+      }, 200);
 
       setEditor(editorInstance);
 
@@ -170,7 +248,93 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
       console.error('Error initializing CV builder:', error);
       message.error('Lỗi khi khởi tạo trình chỉnh sửa CV');
     }
-  }, [template]);
+  }, [template, existingCvData, isEditMode]);
+
+  // Ensure re-apply when template id changes while editor persists
+  useEffect(() => {
+    const current = editor;
+    if (!current || !template) return;
+    (async () => {
+      try {
+        console.log('[CVBuilder] Re-apply template on id change', { templateId: template._id });
+        try {
+          current.setComponents('');
+          current.setStyle('');
+        } catch {}
+
+        let htmlContent = template.html || '';
+        let cssContent = template.css || '';
+        if (!htmlContent) {
+          try {
+            const full = await fetchCVSampleById(template._id);
+            htmlContent = full?.html || '';
+            cssContent = full?.css || cssContent;
+          } catch {}
+        }
+        if (htmlContent && /<html[\s\S]*<\/html>/i.test(htmlContent)) {
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlContent, 'text/html');
+            htmlContent = doc.body?.innerHTML || htmlContent;
+          } catch {}
+        }
+        if (isEditMode && existingCvData && existingCvData.cvFields) {
+          htmlContent = populateTemplateWithData(htmlContent, existingCvData.cvFields);
+        }
+        if (htmlContent) current.setComponents(htmlContent);
+        if (cssContent) current.setStyle(cssContent);
+      } catch (e) {
+        console.error('[CVBuilder] Re-apply failed', e);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template?._id]);
+
+  // Helper function to populate template with saved data
+  const populateTemplateWithData = (html: string, cvFields: any): string => {
+    if (!cvFields || typeof cvFields !== 'object') {
+      return html;
+    }
+
+    let populatedHtml = html;
+
+    // Replace placeholders or populate input fields
+    Object.keys(cvFields).forEach(key => {
+      const value = cvFields[key];
+      if (value) {
+        // Replace data attributes
+        const dataAttrRegex = new RegExp(`data-field="${key}"[^>]*>([^<]*)`, 'g');
+        populatedHtml = populatedHtml.replace(dataAttrRegex, `data-field="${key}">${value}`);
+        
+        // Replace input/textarea values
+        const inputRegex = new RegExp(`(<input[^>]*name="${key}"[^>]*value=")[^"]*"`, 'g');
+        populatedHtml = populatedHtml.replace(inputRegex, `$1${value}"`);
+        
+        const textareaRegex = new RegExp(`(<textarea[^>]*name="${key}"[^>]*>)[^<]*(<\\/textarea>)`, 'g');
+        populatedHtml = populatedHtml.replace(textareaRegex, `$1${value}$2`);
+        
+        // Replace placeholder text for common fields
+        if (key === 'fullName' || key === 'name') {
+          populatedHtml = populatedHtml.replace(/\[Tên của bạn\]/gi, value);
+          populatedHtml = populatedHtml.replace(/\[Your Name\]/gi, value);
+        }
+        if (key === 'email') {
+          populatedHtml = populatedHtml.replace(/\[Email của bạn\]/gi, value);
+          populatedHtml = populatedHtml.replace(/\[Your Email\]/gi, value);
+        }
+        if (key === 'phone') {
+          populatedHtml = populatedHtml.replace(/\[Số điện thoại\]/gi, value);
+          populatedHtml = populatedHtml.replace(/\[Your Phone\]/gi, value);
+        }
+        if (key === 'address') {
+          populatedHtml = populatedHtml.replace(/\[Địa chỉ\]/gi, value);
+          populatedHtml = populatedHtml.replace(/\[Your Address\]/gi, value);
+        }
+      }
+    });
+
+    return populatedHtml;
+  };
 
   const extractCVFields = (html: string) => {
     // Create a temporary DOM element to parse the HTML
@@ -281,23 +445,19 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
     setSaving(true);
     (async () => {
       try {
-        // Save JSON to server via parent callback
-        await Promise.resolve(editor.runCommand('save-cv'));
-
-        // Export to PDF, upload to Supabase, update user profile
+        // Export edited content to PDF first to guarantee the current state is captured
         setUploading(true);
         const pdfBlob = await exportEditorToPdfBlob();
         const file = new File([pdfBlob], 'cv.pdf', { type: 'application/pdf' });
         const { url } = await uploadAPI.uploadCvPdf(file);
-        await usersAPI.updateMe({ cvPdfUrl: url });
 
-        // Also trigger a local download for user convenience
-        const objUrl = URL.createObjectURL(pdfBlob);
-        const a = document.createElement('a');
-        a.href = objUrl;
-        a.download = 'cv.pdf';
-        a.click();
-        URL.revokeObjectURL(objUrl);
+        // Extract current editor state and save JSON to server
+        const html = editor.getHtml();
+        const cvFields = extractCVFields(html);
+        await Promise.resolve(onSave({ cvId: template._id, cvFields }));
+
+        // Update user profile with edited PDF URL
+        await usersAPI.updateMe({ cvPdfUrl: url });
 
         message.success('Đã lưu CV và cập nhật PDF thành công');
       } catch (error) {
@@ -310,77 +470,28 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
     })();
   };
 
-  const handlePreview = () => {
-    if (!editor) {
-      message.error('Trình chỉnh sửa chưa sẵn sàng');
-      return;
-    }
-    
-    try {
-      const html = editor.getHtml();
-      const css = editor.getCss();
-      
-      // Open preview in new window
-      const previewWindow = window.open('', '_blank');
-      if (previewWindow) {
-        previewWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <title>CV Preview</title>
-            <style>${css}</style>
-          </head>
-          <body>
-            ${html}
-          </body>
-          </html>
-        `);
-        previewWindow.document.close();
-      }
-    } catch (error) {
-      console.error('Error generating preview:', error);
-      message.error('Lỗi khi tạo xem trước');
-    }
-  };
-
   const handleDownload = () => {
     if (!editor) {
       message.error('Trình chỉnh sửa chưa sẵn sàng');
       return;
     }
     
-    try {
-      const html = editor.getHtml();
-      const css = editor.getCss();
-      
-      const fullHtml = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta charset="utf-8">
-          <title>CV - ${template.name}</title>
-          <style>${css}</style>
-        </head>
-        <body>
-          ${html}
-        </body>
-        </html>
-      `;
-      
-      const blob = new Blob([fullHtml], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `cv-${template.name.toLowerCase().replace(/\s+/g, '-')}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading CV:', error);
-      message.error('Lỗi khi tải xuống CV');
-    }
+    (async () => {
+      try {
+        const pdfBlob = await exportEditorToPdfBlob();
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cv-${template.name.toLowerCase().replace(/\s+/g, '-')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading CV as PDF:', error);
+        message.error('Lỗi khi tải PDF CV');
+      }
+    })();
   };
 
   return (
@@ -394,17 +505,14 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
                 Quay lại
               </Button>
               <Title level={4} style={{ margin: 0 }}>
-                Tạo CV: {template.name}
+                {isEditMode ? 'Chỉnh sửa CV' : 'Tạo CV'}: {template.name}
               </Title>
             </Space>
           </Col>
           <Col>
             <Space>
-              <Button icon={<EyeOutlined />} onClick={handlePreview}>
-                Xem trước
-              </Button>
               <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-                Tải xuống
+                Tải PDF
               </Button>
               <Button
                 type="primary"
@@ -412,7 +520,7 @@ const CVBuilder: React.FC<CVBuilderProps> = ({
                 onClick={handleSave}
                 loading={saving || uploading}
               >
-                Lưu CV
+                Lưu
               </Button>
             </Space>
           </Col>

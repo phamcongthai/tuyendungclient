@@ -8,7 +8,7 @@ type JobCardProps = {
 
 const JobCard: React.FC<JobCardProps> = ({ job }) => {
   const formatSalary = () => {
-    if (job.salaryNegotiable) return "Thỏa thuận";
+    if (job.isSalaryNegotiable === true) return "Thỏa thuận";
     if (job.salaryMin && job.salaryMax) {
       return `${job.salaryMin.toLocaleString()} - ${job.salaryMax.toLocaleString()} ${job.salaryType || "VNĐ"}`;
     }
