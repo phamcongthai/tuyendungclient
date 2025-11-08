@@ -186,5 +186,103 @@ a { color: inherit; text-decoration: none; }
 /* Blog */
 .blog-cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; display: block; }
 .blog-content img { max-width: 100%; height: auto; display: block; margin: 12px auto; border-radius: 8px; }
-.blog-card-cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+
+/* Modern Blog Cards */
+.blog-card-link {
+  display: block;
+  height: 100%;
+  text-decoration: none;
+  color: inherit;
+}
+
+.modern-blog-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-blog-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(0, 177, 79, 0.15) !important;
+  border-color: #00b14f;
+}
+
+.blog-card-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+.blog-card-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modern-blog-card:hover .blog-card-cover {
+  transform: scale(1.08);
+}
+
+.blog-card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.05) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.modern-blog-card:hover .blog-card-overlay {
+  opacity: 1;
+}
+
+.blog-card-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px;
+}
+
+.blog-card-title {
+  transition: color 0.3s ease;
+}
+
+.modern-blog-card:hover .blog-card-title {
+  color: #00b14f !important;
+}
+
+.blog-card-excerpt {
+  display: block;
+}
+
+.blog-filter-card {
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.blog-filter-card:hover {
+  border-color: #00b14f;
+  box-shadow: 0 4px 16px rgba(0, 177, 79, 0.08);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .blog-card-image-wrapper {
+    height: 140px;
+  }
+  
+  .blog-card-content {
+    padding: 12px;
+  }
+}
 

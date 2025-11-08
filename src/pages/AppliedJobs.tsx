@@ -145,7 +145,10 @@ const AppliedJobs: React.FC = () => {
                         <Avatar shape="square" size={48} style={{ background: '#f6ffed', color: '#52c41a' }} icon={<FileTextOutlined />} />
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 16 }}>
-                            {typeof item.jobId === 'object' ? (item.jobId.title || 'Tin tuyển dụng') : 'Tin tuyển dụng'}
+                            {typeof item.jobId === 'object' && item.jobId ? 
+                              (item.jobId.title || 'Tin tuyển dụng') : 
+                              <span style={{ color: '#999' }}>Tin tuyển dụng đã bị xóa</span>
+                            }
                           </div>
                           <Space size={12} style={{ color: '#8c8c8c', fontSize: 12 }}>
                             <span><ClockCircleOutlined /> {new Date(item.createdAt).toLocaleString()}</span>
@@ -154,20 +157,26 @@ const AppliedJobs: React.FC = () => {
                         </div>
                       </Space>
                       <Space>
-                        <Tooltip title="Xem chi tiết">
-                          <Button 
-                            type="default" 
-                            icon={<ArrowRightOutlined />} 
-                            onClick={() => {
-                              const slug = typeof item.jobId === 'object' ? item.jobId.slug : undefined;
-                              if (slug) {
-                                navigate(`/jobs/${slug}`);
-                              } else {
-                                navigate('/profile');
-                              }
-                            }} 
-                          />
-                        </Tooltip>
+                        {typeof item.jobId === 'object' && item.jobId?.slug ? (
+                          <Tooltip title="Xem chi tiết công việc">
+                            <Button 
+                              type="default" 
+                              icon={<ArrowRightOutlined />} 
+                              onClick={() => {
+                                const job = item.jobId as { _id: string; title?: string; slug?: string };
+                                if (job.slug) navigate(`/jobs/${job.slug}`);
+                              }} 
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title="Tin tuyển dụng không còn tồn tại">
+                            <Button 
+                              type="default" 
+                              icon={<ArrowRightOutlined />} 
+                              disabled
+                            />
+                          </Tooltip>
+                        )}
                         {(item.status === 'pending' || item.status === 'viewed') && (
                           <Popconfirm
                             title="Rút đơn ứng tuyển"

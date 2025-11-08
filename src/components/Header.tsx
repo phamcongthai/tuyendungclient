@@ -54,6 +54,10 @@ export const Header: React.FC = () => {
               label: <a href="#cv" onClick={(e) => { e.preventDefault(); handleMenuClick('cv') }}>CV</a> 
             },
             { 
+              key: 'trac-nghiem', 
+              label: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/trac-nghiem'); }}>Trắc nghiệm</a> 
+            },
+            { 
               key: 'blog', 
               label: <a href="#" onClick={(e) => { e.preventDefault(); navigate('/blog'); }}>Blog</a> 
             }

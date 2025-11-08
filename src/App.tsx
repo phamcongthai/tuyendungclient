@@ -22,6 +22,9 @@ import { NotificationProvider } from './contexts/NotificationContext'
 import AppliedJobs from './pages/AppliedJobs'
 import { SettingsProvider } from './contexts/SettingsContext'
 import ActiveBanners from './pages/ActiveBanners'
+import HollandIntro from './pages/HollandIntro'
+import HollandTest from './pages/HollandTest'
+import HollandResult from './pages/HollandResult'
 
 const App: React.FC = () => {
   return (
@@ -65,6 +68,9 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/applications" element={<AppliedJobs />} />
             <Route path="/banners" element={<ActiveBanners />} />
+            <Route path="/trac-nghiem" element={<HollandIntro />} />
+            <Route path="/holland-test" element={<HollandTest />} />
+            <Route path="/holland-result" element={<HollandResult />} />
           </Routes>
           <BackToTopButton />
         </AntdApp>
