@@ -19,6 +19,7 @@ import { usersAPI } from '../apis/users.api'
 import { App as AntdApp } from 'antd'
 import SingleBannerCarousel from '../components/SingleBannerCarousel'
 import StatsCounters from '../components/StatsCounters'
+import './Home.css'
 
 type FeaturedCategory = { _id: string; title: string; slug: string; logo?: string; jobCount: number }
 
@@ -32,6 +33,12 @@ const Home: React.FC = () => {
   const [displayedJobs, setDisplayedJobs] = useState<JobData[]>([])
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  // Newest jobs (non-featured)
+  const [latestJobs, setLatestJobs] = useState<JobData[]>([])
+  const [loadingLatest, setLoadingLatest] = useState<boolean>(true)
+  const [currentLatestPage, setCurrentLatestPage] = useState(1)
+  const [hasMoreLatest, setHasMoreLatest] = useState(true)
+  const [loadingMoreLatest, setLoadingMoreLatest] = useState(false)
   const [, setTotalJobs] = useState(0)
   const [featuredCategories, setFeaturedCategories] = useState<FeaturedCategory[]>([])
   const { user } = useUser()
@@ -51,7 +58,7 @@ const Home: React.FC = () => {
     const getHotJobs = async () => {
       setLoadingHotJobs(true)
       try {
-        const { data, total } = await fetchJobs({ page: 1, limit: 6, status: 'active' })
+        const { data, total } = await fetchJobs({ page: 1, limit: 6, status: 'active', featured: true })
         setDisplayedJobs(data)
         setTotalJobs(total)
         setHasMore(data.length === 6 && total > 6)
@@ -60,6 +67,18 @@ const Home: React.FC = () => {
         setDisplayedJobs([])
       } finally {
         setLoadingHotJobs(false)
+      }
+    }
+    const getLatestJobs = async () => {
+      setLoadingLatest(true)
+      try {
+        const { data, total } = await fetchJobs({ page: 1, limit: 6, status: 'active', featured: false })
+        setLatestJobs(data)
+        setHasMoreLatest(data.length === 6 && total > 6)
+      } catch (e) {
+        setLatestJobs([])
+      } finally {
+        setLoadingLatest(false)
       }
     }
     const getFeaturedCompanies = async () => {
@@ -151,6 +170,7 @@ const Home: React.FC = () => {
     getFeaturedCompanies()
     getFeaturedCategories()
     getCV()
+    getLatestJobs()
   }, [])
 
   const openCVPreview = async (id: string) => {
@@ -205,7 +225,7 @@ const Home: React.FC = () => {
     setLoadingMore(true)
     try {
       const nextPage = currentPage + 1
-      const { data, total } = await fetchJobs({ page: nextPage, limit: 6, status: 'active' })
+      const { data, total } = await fetchJobs({ page: nextPage, limit: 6, status: 'active', featured: true })
       
       if (data.length > 0) {
         setDisplayedJobs(prev => [...prev, ...data])
@@ -217,6 +237,25 @@ const Home: React.FC = () => {
     } catch (error) {
     } finally {
       setLoadingMore(false)
+    }
+  }
+
+  const loadMoreLatestJobs = async () => {
+    if (loadingMoreLatest || !hasMoreLatest) return
+    setLoadingMoreLatest(true)
+    try {
+      const nextPage = currentLatestPage + 1
+      const { data, total } = await fetchJobs({ page: nextPage, limit: 6, status: 'active', featured: false })
+      if (data.length > 0) {
+        setLatestJobs(prev => [...prev, ...data])
+        setCurrentLatestPage(nextPage)
+        setHasMoreLatest(latestJobs.length + data.length < total)
+      } else {
+        setHasMoreLatest(false)
+      }
+    } catch (e) {
+    } finally {
+      setLoadingMoreLatest(false)
     }
   }
 
@@ -284,38 +323,18 @@ const Home: React.FC = () => {
 
         
 
-        {/* Hot Jobs Section - Improved Design */}
-        <section className="section hot-jobs-section" id="jobs" style={{ 
-          background: 'transparent',
-          padding: '60px 0',
-          position: 'relative'
-        }}>
+        {/* Hot Jobs Section - Modern UI */}
+        <section className="section hot-jobs-section" id="jobs">
           <div className="container">
             {/* Section Header */}
-            <div className="section-head" style={{ 
-              textAlign: 'center', 
-              marginBottom: '40px',
-              color: '#0f172a'
-            }}>
+            <div className="section-head">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '16px' }}>
                 <FireOutlined style={{ fontSize: '32px', color: '#ff6b35' }} />
-                <h2 style={{ 
-                  fontSize: '36px', 
-                  fontWeight: '700', 
-                  margin: 0,
-                  color: '#00B14F',
-                  textShadow: 'none'
-                }}>
+                <h2>
                   Việc làm hot
                 </h2>
               </div>
-              <p style={{ 
-                fontSize: '18px', 
-                opacity: 0.9, 
-                margin: 0,
-                fontWeight: '300',
-                color: '#334155'
-              }}>
+              <p>
                 Những cơ hội việc làm hấp dẫn nhất đang chờ bạn
               </p>
             </div>
@@ -334,128 +353,55 @@ const Home: React.FC = () => {
                       <div 
                         data-slug={job.slug}
                         onClick={() => handleJobClick(job)}
-                        style={{
-                          background: 'white',
-                          borderRadius: '12px',
-                          padding: '16px',
-                          boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-                          border: '1px solid #f0f0f0',
-                          transition: 'all 0.3s ease',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          overflow: 'hidden',
-                          width: '370px',
-                          height: '115px'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.transform = 'translateY(-4px)';
-                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.12)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.transform = 'translateY(0)';
-                          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.08)';
-                        }}
+                        className="job-card"
                       >
                         {/* Hot Badge */}
-                        <div style={{
-                          position: 'absolute',
-                          top: '12px',
-                          right: '12px',
-                          background: 'linear-gradient(45deg, #ff6b35, #f7931e)',
-                          color: 'white',
-                          padding: '3px 8px',
-                          borderRadius: '12px',
-                          fontSize: '10px',
-                          fontWeight: '600',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}>
+                        <div className="badge-hot">
                           <FireOutlined style={{ fontSize: '10px' }} />
                           HOT
                         </div>
 
                         {/* Company Info */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                          <div style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '8px',
-                            background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: 'white',
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            flexShrink: 0,
-                            overflow: 'hidden'
-                          }}>
+                        <div className="job-company-row">
+                          <div className="company-avatar">
                             {(() => {
                               const companyObj = (typeof job.companyId === 'object' && job.companyId) ? (job.companyId as any) : null
                               const logo = job.company?.logo || job.companyLogo || companyObj?.logo
-                              const src = logo || job.images?.[0]
-                              if (src) {
+                              if (logo) {
                                 return (
                                   <img 
-                                    src={src} 
-                                    alt={job.title}
-                                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                                    src={logo} 
+                                    alt={(job.company?.name || companyObj?.name || job.companyName || 'Company')}
+                                    
                                   />
                                 )
                               }
-                              return job.title.charAt(0).toUpperCase()
+                              const fallback = (job.company?.name || companyObj?.name || job.companyName || job.title || 'C')
+                              return fallback.charAt(0).toUpperCase()
                             })()}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <h3 style={{
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              margin: '0 0 4px 0',
-                              color: '#1a1a1a',
-                              lineHeight: '1.3',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
+                            <h3 className="job-title">
                               {job.title}
                             </h3>
-                            <p style={{
-                              fontSize: '12px',
-                              color: '#666',
-                              margin: 0,
-                              fontWeight: '500',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
+                            <p className="job-subtitle">
                               {job.career || 'Chưa xác định'}
                             </p>
                           </div>
                         </div>
 
                         {/* Salary */}
-                        <div style={{
-                          background: 'linear-gradient(135deg, #f8f9ff, #e8f2ff)',
-                          padding: '8px 12px',
-                          borderRadius: '8px',
-                          marginBottom: '10px',
-                          border: '1px solid #e3f2fd'
-                        }}>
+                        <div className="salary-chip">
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <DollarOutlined style={{ color: '#2196f3', fontSize: '12px' }} />
-                            <span style={{
-                              fontSize: '13px',
-                              fontWeight: '600',
-                              color: '#1976d2'
-                            }}>
+                            <span className="val">
                               {formatSalary(job)}
                             </span>
                           </div>
                         </div>
 
                         {/* Tags */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
+                        <div className="job-tags">
                           {job.jobType && (
                             <Tag color={getJobTypeColor(job.jobType)} style={{ borderRadius: '4px', fontWeight: '500', fontSize: '10px', padding: '2px 6px' }}>
                               {job.jobType}
@@ -482,7 +428,7 @@ const Home: React.FC = () => {
                         </div>
 
                         {/* Additional Info */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        <div className="job-extra-tags">
                           {job.experienceYears && (
                             <Tag style={{ 
                               background: '#e3f2fd', 
@@ -549,25 +495,7 @@ const Home: React.FC = () => {
                   size="large"
                   loading={loadingMore}
                   onClick={loadMoreJobs}
-                  style={{
-                    background: 'rgba(255,255,255,0.2)',
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    color: '#00B14F',
-                    borderRadius: '12px',
-                    padding: '12px 32px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    backdropFilter: 'blur(10px)',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.3)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.5)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
-                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
-                  }}
+                  className="btn-load-more"
                   icon={<PlusOutlined />}
                 >
                   {loadingMore ? 'Đang tải...' : 'Xem thêm việc làm'}
@@ -576,6 +504,92 @@ const Home: React.FC = () => {
             )}
 
             {/* View All Button removed per request; keep only Load More */}
+          </div>
+        </section>
+
+        {/* Newest Jobs Section */}
+        <section className="section hot-jobs-section" id="newest-jobs">
+          <div className="container">
+            <div className="section-head">
+              <h2>Việc làm mới nhất</h2>
+              <p>Các tin mới đăng gần đây</p>
+            </div>
+            <Row gutter={[20, 20]}>
+              {loadingLatest
+                ? Array.from({ length: 6 }).map((_, idx) => (
+                    <Col key={idx} xs={24} sm={12} md={8} lg={8}>
+                      <HotJobCardSkeleton />
+                    </Col>
+                  ))
+                : latestJobs.length > 0
+                ? latestJobs.map((job) => (
+                    <Col key={job._id} xs={24} sm={12} md={8} lg={8}>
+                      <div 
+                        data-slug={job.slug}
+                        onClick={() => handleJobClick(job)}
+                        className="job-card"
+                      >
+                        <div className="job-company-row">
+                          <div className="company-avatar">
+                            {(() => {
+                              const companyObj = (typeof job.companyId === 'object' && job.companyId) ? (job.companyId as any) : null
+                              const logo = job.company?.logo || job.companyLogo || companyObj?.logo
+                              if (logo) {
+                                return (
+                                  <img 
+                                    src={logo} 
+                                    alt={(job.company?.name || companyObj?.name || job.companyName || 'Company')}
+                                  />
+                                )
+                              }
+                              const fallback = (job.company?.name || companyObj?.name || job.companyName || job.title || 'C')
+                              return fallback.charAt(0).toUpperCase()
+                            })()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <h3 className="job-title">{job.title}</h3>
+                            <p className="job-subtitle">{job.career || 'Chưa xác định'}</p>
+                          </div>
+                        </div>
+                        <div className="salary-chip">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <DollarOutlined style={{ color: '#0ea5e9', fontSize: 12 }} />
+                            <span className="val">{formatSalary(job)}</span>
+                          </div>
+                        </div>
+                        <div className="job-tags">
+                          {job.jobType && (
+                            <Tag color={getJobTypeColor(job.jobType)} style={{ borderRadius: 4, fontWeight: 500, fontSize: 10, padding: '2px 6px' }}>
+                              {job.jobType}
+                            </Tag>
+                          )}
+                          {job.level && (
+                            <Tag color={getLevelColor(job.level)} style={{ borderRadius: 4, fontWeight: 500, fontSize: 10, padding: '2px 6px' }}>
+                              {job.level}
+                            </Tag>
+                          )}
+                        </div>
+                      </div>
+                    </Col>
+                  ))
+                : (
+                  <Col span={24}>
+                    <Empty description="Không có việc làm nào" style={{ background: 'white', borderRadius: 16, padding: 40, margin: '20px 0' }} />
+                  </Col>
+                )}
+            </Row>
+            {hasMoreLatest && !loadingLatest && (
+              <div style={{ textAlign: 'center', marginTop: 30 }}>
+                <Button 
+                  size="large"
+                  loading={loadingMoreLatest}
+                  onClick={loadMoreLatestJobs}
+                  className="btn-load-more"
+                >
+                  {loadingMoreLatest ? 'Đang tải...' : 'Xem thêm việc mới'}
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 
@@ -700,6 +714,30 @@ const Home: React.FC = () => {
               <p>Hệ thống đề xuất thông minh giúp bạn tiếp cận đúng công việc mơ ước.</p>
             </div>
             <a className="btn btn-secondary" href="#" onClick={(e) => { e.preventDefault(); setUploadModalOpen(true) }}>Tải CV ngay</a>
+          </div>
+        </section>
+
+        <section className="section" id="support-hotline" style={{ padding: '40px 0', background: 'linear-gradient(90deg, #0bb24d, #14a44d)' }}>
+          <div className="container">
+            <h3 style={{ color: 'white', margin: '0 0 16px', fontSize: 20, fontWeight: 700 }}>Hotline Tư Vấn</h3>
+            <div style={{ background: 'white', borderRadius: 16, padding: 24, display: 'flex', alignItems: 'center', gap: 24 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ marginBottom: 12 }}>
+                  <span style={{ display: 'inline-block', padding: '6px 12px', background: '#e8f5e9', color: '#00B14F', borderRadius: 999, fontWeight: 600 }}>Dành cho Người tìm việc</span>
+                </div>
+                <h2 style={{ margin: '8px 0 20px', fontSize: 28, lineHeight: 1.2, color: '#111827' }}>Tìm việc khó đã có HiWork</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+                  <a href="tel:0123456789" style={{ background: '#00B14F', color: '#fff', borderRadius: 999, padding: '10px 16px', fontWeight: 700, textDecoration: 'none' }}>0123456789</a>
+                  <Button type="primary" shape="round" style={{ background: '#00B14F', borderColor: '#00B14F', fontWeight: 700 }} onClick={() => (window.location.href = 'tel:0123456789')}>GỌI NGAY</Button>
+                </div>
+                <div style={{ color: '#334155' }}>
+                  <div style={{ fontSize: 14 }}>Email hỗ trợ Ứng viên: <a href="mailto:hiwork@gmail.com">hiwork@gmail.com</a></div>
+                </div>
+              </div>
+              <div style={{ flex: '0 0 320px', textAlign: 'center' }}>
+                <img src="https://cdn-new.topcv.vn/unsafe/https://static.topcv.vn/v4/image/job-new/hotline.png" alt="Hỗ trợ HiWork" style={{ width: '100%', maxWidth: 360 }} />
+              </div>
+            </div>
           </div>
         </section>
 

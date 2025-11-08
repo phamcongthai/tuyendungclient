@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Form, 
   Input, 
@@ -30,10 +30,11 @@ const { Title, Text, Paragraph } = Typography;
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const { login, user, loading: userLoading } = useUser();
+  const { login, user, loading: userLoading, refreshUser } = useUser();
 
   // Redirect to home if already authenticated
   useEffect(() => {
@@ -101,6 +102,29 @@ const Login: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleGoogleLogin = () => {
+    const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '905114282586-lj1n3t68peq5nq8amurj5h7a24u0e5hu.apps.googleusercontent.com';
+    const redirectUri = 'http://localhost:3000/auth/google/callback';
+    const url = `${apiBase}/auth/google?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    window.location.href = url;
+  };
+
+  // Handle Google OAuth redirect result
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('oauth') === 'success') {
+      (async () => {
+        try {
+          await refreshUser();
+          navigate('/');
+        } catch {
+          // ignore
+        }
+      })();
+    }
+  }, [location.search]);
 
   // Avoid rendering the login form while checking auth state
   if (userLoading) {
@@ -242,44 +266,28 @@ const Login: React.FC = () => {
                 <Button
                   block
                   size="large"
+                  onClick={handleGoogleLogin}
+                  icon={
+                    <img
+                      src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                      alt="Google"
+                      style={{ width: 20, height: 20 }}
+                    />
+                  }
                   style={{
                     height: '48px',
                     borderRadius: '8px',
-                    background: '#db4437',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: '500'
+                    border: '1px solid #d9d9d9',
+                    background: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    color: '#3c4043',
+                    fontWeight: 500
                   }}
                 >
-                  Google
-                </Button>
-                <Button
-                  block
-                  size="large"
-                  style={{
-                    height: '48px',
-                    borderRadius: '8px',
-                    background: '#1877f2',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: '500'
-                  }}
-                >
-                  Facebook
-                </Button>
-                <Button
-                  block
-                  size="large"
-                  style={{
-                    height: '48px',
-                    borderRadius: '8px',
-                    background: '#0a66c2',
-                    border: 'none',
-                    color: 'white',
-                    fontWeight: '500'
-                  }}
-                >
-                  LinkedIn
+                  Đăng nhập với Google
                 </Button>
               </Space>
 

@@ -27,6 +27,8 @@ export type JobData = {
   jobType?: string;
   location?: string;
   address?: string;
+  isFeatured?: boolean;
+  featuredPackageId?: string | null;
   // Lifecycle
   status?: 'draft' | 'active' | 'expired';
   deadline?: string; 
